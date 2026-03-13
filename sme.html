@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Gurukul — Curated Content</title>
+  <meta name="description" content="Gurukul Curated Content: SME review and approval of AI-generated curriculum." />
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet" />
+
+  <!-- Stylesheets -->
+  <link rel="stylesheet" href="css/styles.css?v=12" />
+  <link rel="stylesheet" href="css/sme.css?v=4" />
+</head>
+<body>
+
+  <!-- SME SPA root -->
+  <div id="sme-app">
+    <div class="sme-loading">📋 Loading Content SME Portal…</div>
+  </div>
+
+  <!-- ==============================
+       DATA LAYER (load first)
+       ============================== -->
+  <script src="data/topics.js?v=10"></script>
+  <script src="data/users.js?v=5"></script>
+
+  <!-- ==============================
+       SME UI LAYER
+       ============================== -->
+  <script src="js/sme-app.js?v=11"></script>
+
+</body>
+</html>

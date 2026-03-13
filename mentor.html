@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Gurukul — Mentor Dashboard</title>
+  <meta name="description"
+    content="Gurukul Mentor Dashboard: Monitor student progress, reward achievements, and promote learners." />
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet" />
+
+  <!-- Stylesheets -->
+  <link rel="stylesheet" href="css/styles.css?v=29" />
+  <link rel="stylesheet" href="css/mentor.css?v=14" />
+</head>
+
+<body>
+
+  <!-- Mentor SPA root -->
+  <div id="mentor-app">
+    <div
+      style="display:flex;align-items:center;justify-content:center;min-height:100vh;font-family:sans-serif;color:#6B3F1A;">
+      🕉️ Loading Mentor Dashboard…
+    </div>
+  </div>
+
+  <!-- ==============================
+       DATA LAYER (load first)
+       ============================== -->
+  <script src="data/topics.js?v=10"></script>
+  <script src="data/users.js?v=6"></script>
+  <script src="data/feedback-data.js?v=4"></script>
+  <script src="data/session-store.js?v=9"></script>
+
+  <!-- ==============================
+       BUSINESS LOGIC LAYER
+       ============================== -->
+  <script src="js/voice-engine.js?v=1"></script>
+  <script src="js/xp-manager.js?v=4"></script>
+  <script src="js/mood-engine.js?v=5"></script>
+  <script src="js/recommender.js?v=4"></script>
+  <script src="js/feedback.js?v=4"></script>
+  <script src="js/agent-logic.js?v=2"></script>
+
+  <!-- ==============================
+       MENTOR UI LAYER
+       ============================== -->
+  <script src="js/mentor-app.js?v=21"></script>
+
+</body>
+
+</html>

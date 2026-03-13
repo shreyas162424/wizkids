@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Gurukul — Personalized Learning</title>
+  <meta name="description" content="Gurukul: AI-powered personalized learning framework for students." />
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet" />
+
+  <!-- Stylesheet -->
+  <link rel="stylesheet" href="css/styles.css?v=24" />
+</head>
+
+<body>
+
+  <!-- SPA root — all screens are rendered here by app.js -->
+  <div id="app">
+    <div
+      style="display:flex;align-items:center;justify-content:center;min-height:100vh;font-family:sans-serif;color:#6B3F1A;">
+      🕉️ Loading Gurukul…
+    </div>
+  </div>
+
+  <!-- ==============================
+       DATA LAYER (load first)
+       ============================== -->
+  <script src="data/topics.js?v=10"></script>
+  <script src="data/users.js?v=6"></script>
+  <script src="data/feedback-data.js?v=4"></script>
+  <script src="data/session-store.js?v=7"></script>
+
+  <!-- ==============================
+       BUSINESS LOGIC LAYER
+       ============================== -->
+  <script src="js/auth.js?v=4"></script>
+  <script src="js/mood-engine.js?v=5"></script>
+  <script src="js/mood-game.js?v=3"></script>
+  <script src="js/recommender.js?v=4"></script>
+  <script src="js/assessment.js?v=4"></script>
+  <script src="js/feedback.js?v=4"></script>
+  <script src="js/voice-engine.js?v=1"></script>
+  <script src="js/xp-manager.js?v=4"></script>
+  <script src="js/ai-config.js?v=1"></script>
+  <script src="js/ai-tutor.js?v=4"></script>
+
+  <!-- ==============================
+       UI LAYER (load last)
+       ============================== -->
+  <script src="js/app.js?v=36"></script>
+
+</body>
+
+</html>
