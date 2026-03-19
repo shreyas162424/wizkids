@@ -1,0 +1,28 @@
+# API Keys and Secrets
+.env
+.env.local
+.env.*.local
+env.txt
+
+# Dependencies
+node_modules/
+jspm_packages/
+
+# IDEs and Editors
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Local History
+.history/
+
+# Build and Temp
+dist/
+build/
+tmp/
+temp/
+
+# OS Files
+.DS_Store
+Thumbs.db

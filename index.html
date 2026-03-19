@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Gurukul — Start Here</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Poppins', sans-serif;
+      background: #FDFAF4;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 2rem;
+    }
+
+    .hero {
+      text-align: center;
+      margin-bottom: 3rem;
+    }
+
+    .hero-symbol {
+      font-size: 4rem;
+      display: block;
+      margin-bottom: .75rem;
+    }
+
+    .hero h1 {
+      font-size: 1.8rem;
+      font-weight: 700;
+      color: #6B3F1A;
+      margin-bottom: .2rem;
+    }
+
+    .hero p {
+      font-size: 1.05rem;
+      color: #888;
+      max-width: 480px;
+      margin: 0 auto;
+      line-height: 1.6;
+    }
+
+    .portal-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1.5rem;
+      max-width: 1020px;
+      width: 100%;
+    }
+
+    .portal-card {
+      background: white;
+      border-radius: 16px;
+      padding: 2.5rem 2rem;
+      text-align: center;
+      text-decoration: none;
+      border-top: 5px solid #6B3F1A;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, .08);
+      transition: transform .2s, box-shadow .2s;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: .75rem;
+    }
+
+    .portal-card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 8px 28px rgba(0, 0, 0, .14);
+    }
+
+    .portal-card.mentor-portal {
+      border-top-color: #C4882A;
+    }
+
+    .portal-card.sme-portal {
+      border-top-color: #2563EB;
+    }
+
+    .portal-icon {
+      font-size: 3rem;
+    }
+
+    .portal-title {
+      font-size: 1.2rem;
+      font-weight: 700;
+      color: #3d2b1a;
+    }
+
+    .portal-desc {
+      font-size: .85rem;
+      color: #888;
+      line-height: 1.5;
+    }
+
+    .portal-btn {
+      margin-top: .5rem;
+      padding: .6rem 1.5rem;
+      border-radius: 8px;
+      font-family: inherit;
+      font-size: .9rem;
+      font-weight: 600;
+      border: none;
+      cursor: pointer;
+      color: white;
+      background: #6B3F1A;
+    }
+
+    .mentor-portal .portal-btn {
+      background: #C4882A;
+    }
+
+    .sme-portal .portal-btn {
+      background: #2563EB;
+    }
+
+    .sme-portal .portal-title {
+      color: #1E293B;
+    }
+
+    .footer-note {
+      margin-top: 2.5rem;
+      font-size: .78rem;
+      color: #bbb;
+      text-align: center;
+    }
+
+    .footer-note code {
+      background: #f0ece4;
+      padding: .15rem .4rem;
+      border-radius: 4px;
+      font-size: .78rem;
+      color: #6B3F1A;
+    }
+
+    @media (max-width: 760px) {
+      .portal-grid {
+        grid-template-columns: 1fr;
+        max-width: 360px;
+      }
+
+      .hero h1 {
+        font-size: 2rem;
+      }
+    }
+
+    @media (min-width: 761px) and (max-width: 900px) {
+      .portal-grid {
+        grid-template-columns: 1fr 1fr;
+        max-width: 680px;
+      }
+
+      .sme-portal {
+        grid-column: 1 / -1;
+        max-width: 320px;
+        margin: 0 auto;
+        width: 100%;
+      }
+    }
+
+    /* ── Animated background ── */
+    body {
+      position: relative;
+      overflow-x: hidden;
+      background: linear-gradient(135deg, #FDFAF4 0%, #FFF8E7 35%, #F5EDD8 65%, #FDFAF4 100%);
+      background-size: 400% 400%;
+      animation: gkBgShift 12s ease-in-out infinite;
+    }
+    @keyframes gkBgShift {
+      0%,100% { background-position: 0% 50%; }
+      50%      { background-position: 100% 50%; }
+    }
+    #gk-particles {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 0;
+      overflow: hidden;
+    }
+    .gk-petal {
+      position: absolute;
+      opacity: 0;
+      animation: gkPetalRise linear both;
+      will-change: transform, opacity;
+    }
+    @keyframes gkPetalRise {
+      0%   { transform: translateY(0) rotate(0deg) scale(0.7); opacity: 0; }
+      8%   { opacity: 0.75; }
+      88%  { opacity: 0.55; }
+      100% { transform: translateY(-105vh) rotate(540deg) scale(0.4); opacity: 0; }
+    }
+    @keyframes gkHeroIn {
+      from { opacity: 0; transform: translateY(-22px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .hero { animation: gkHeroIn 0.7s cubic-bezier(0.34,1.56,0.64,1) both; position: relative; z-index: 1; }
+    @keyframes gkCardIn {
+      from { opacity: 0; transform: translateY(28px) scale(0.95); }
+      to   { opacity: 1; transform: translateY(0)    scale(1);    }
+    }
+    .portal-card {
+      animation: gkCardIn 0.6s cubic-bezier(0.34,1.56,0.64,1) both;
+      position: relative; z-index: 1; overflow: hidden;
+    }
+    .portal-card:nth-child(1) { animation-delay: 0.10s; }
+    .portal-card:nth-child(2) { animation-delay: 0.22s; }
+    .portal-card:nth-child(3) { animation-delay: 0.34s; }
+    .portal-card::after {
+      content: '';
+      position: absolute; top: 0; left: -100%;
+      width: 60%; height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.35), transparent);
+      transform: skewX(-20deg);
+      transition: left 0.55s ease;
+      pointer-events: none;
+    }
+    .portal-card:hover::after { left: 160%; }
+    .portal-card:hover {
+      transform: translateY(-8px) scale(1.02) !important;
+      box-shadow: 0 16px 40px rgba(107,63,26,0.18) !important;
+    }
+    .portal-icon {
+      display: inline-block;
+      transition: transform 0.35s cubic-bezier(0.34,1.56,0.64,1);
+    }
+    .portal-card:hover .portal-icon { transform: scale(1.25) rotate(10deg); }
+    .portal-btn {
+      position: relative; overflow: hidden;
+      transition: transform 0.22s cubic-bezier(0.34,1.56,0.64,1), box-shadow 0.22s;
+    }
+    .portal-btn:hover { transform: translateY(-2px) scale(1.05); box-shadow: 0 6px 18px rgba(0,0,0,0.2); }
+    .portal-btn::after {
+      content: ''; position: absolute; inset: 0;
+      background: radial-gradient(circle at center, rgba(255,255,255,0.3) 0%, transparent 70%);
+      opacity: 0; transition: opacity 0.22s;
+    }
+    .portal-btn:hover::after { opacity: 1; }
+    .hero-symbol { animation: gkLogoFloat 3.5s ease-in-out infinite; }
+    @keyframes gkLogoFloat {
+      0%,100% { transform: translateY(0); }
+      50%      { transform: translateY(-8px); }
+    }
+  </style>
+</head>
+
+<body>
+
+  <div id="gk-particles" aria-hidden="true"></div>
+
+  <div class="hero" style="display: flex; flex-direction: column; align-items: center;">
+    <img src="img/wizkids-logo.png" alt="Wizkids Logo" class="hero-symbol"
+      style="width:65px; height:auto; margin: 0 auto 0.4rem auto; display:block;" />
+    <h1>Wizkids Gurukul</h1>
+    <p>AI-powered personalized learning. Choose your path below to begin the journey.</p>
+  </div>
+
+  <div class="portal-grid">
+    <!-- Student Portal -->
+    <a href="student.html" class="portal-card">
+      <span class="portal-icon">📚</span>
+      <div class="portal-title">Student Journey</div>
+      <div class="portal-desc">
+        Start your daily learning session. Complete topics, play games, and earn XP!
+      </div>
+      <button class="portal-btn">Start Learning ✨</button>
+      <div style="font-size:.75rem;color:#bbb;margin-top:.25rem">Login: diya / gurukul123</div>
+    </a>
+
+    <!-- Mentor Portal -->
+    <a href="mentor.html" class="portal-card mentor-portal">
+      <span class="portal-icon">👩‍🏫</span>
+      <div class="portal-title">Mentor Dashboard</div>
+      <div class="portal-desc">
+        View student progress, assessment scores, reward achievements, and promote learners.
+      </div>
+      <button class="portal-btn">Open Dashboard 🎓</button>
+      <div style="font-size:.75rem;color:#bbb;margin-top:.25rem">Login: mentor / mentor123</div>
+    </a>
+
+    <!-- Curated Content -->
+    <a href="sme.html" class="portal-card sme-portal">
+      <span class="portal-icon">📋</span>
+      <div class="portal-title">Curated Content</div>
+      <div class="portal-desc">
+        Review and approve AI-generated curriculum content before it goes live in the student learning path.
+      </div>
+      <button class="portal-btn">Review Content ✅</button>
+      <div style="font-size:.75rem;color:#bbb;margin-top:.25rem">Login: sme / sme123</div>
+    </a>
+  </div>
+
+  <script>
+    (function() {
+      const petals = ['🪷','✨','🌸','⭐','🌟','💫'];
+      const container = document.getElementById('gk-particles');
+      if (!container) return;
+      function spawn() {
+        const el = document.createElement('span');
+        el.className = 'gk-petal';
+        el.textContent = petals[Math.floor(Math.random() * petals.length)];
+        el.style.left     = (Math.random() * 100) + '%';
+        el.style.bottom   = '-40px';
+        el.style.fontSize = (0.9 + Math.random() * 1.1) + 'rem';
+        const dur = 7000 + Math.random() * 8000;
+        el.style.animationDuration = dur + 'ms';
+        el.style.animationDelay   = '0ms';
+        container.appendChild(el);
+        setTimeout(() => el.remove(), dur + 200);
+      }
+      for (let i = 0; i < 10; i++) setTimeout(spawn, i * 400);
+      setInterval(spawn, 900);
+    })();
+  </script>
+
+</body>
+
+</html>
