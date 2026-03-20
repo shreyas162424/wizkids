@@ -27,7 +27,7 @@ const GK_USERS = [
   {
     id: "diya",
     username: "diya",
-    password: "gurukul123",
+    password: "Diya@2025",
     displayName: "Diya",
     grade: "6",
     avatar: "🌸",
@@ -40,9 +40,24 @@ const GK_USERS = [
     persona: "Nature lover, silent, high IQ. Struggles with noisy environments but blossoms in quiet contemplation."
   },
   {
+    id: "disha",
+    username: "disha",
+    password: "Disha@2025",
+    displayName: "Disha",
+    grade: "6",
+    avatar: "🌺",
+    photo: "img/avatar-disha.png",
+    joinDate: "2025-01-01",
+    totalXP: 0,
+    level: 1,
+    completedTopics: [],
+    preferredStyle: "visual",
+    persona: "Creative and expressive learner. Thrives on storytelling, art connections, and collaborative activities."
+  },
+  {
     id: "vidwath",
     username: "vidwath",
-    password: "gurukul123",
+    password: "Vidwath@2025",
     displayName: "Vidwath",
     grade: "6",
     avatar: "🌟",
@@ -53,6 +68,21 @@ const GK_USERS = [
     completedTopics: [],
     preferredStyle: "visual",
     persona: "Energetic, practical learner, curious. Loves hands-on experiments and quick feedback."
+  },
+  {
+    id: "mahanth",
+    username: "mahanth",
+    password: "Mahanth@2025",
+    displayName: "Mahanth",
+    grade: "6",
+    avatar: "🦁",
+    photo: "img/avatar-mahanth.png",
+    joinDate: "2025-01-01",
+    totalXP: 0,
+    level: 1,
+    completedTopics: [],
+    preferredStyle: "kinesthetic",
+    persona: "Bold, competitive, and analytical. Motivated by challenges, rankings, and mastery of concepts."
   }
 ];
 

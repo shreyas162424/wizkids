@@ -1216,6 +1216,459 @@ const GK_TOPICS = {
               ]
             }
           ]
+        },
+        {
+          id: "methods-of-separation",
+          name: "Methods of Separation in Everyday Life",
+          pageTitle: "G6_SCI_C9_Methods of Separation in Everyday Life_P9",
+          description: "Explore how different mixtures are separated using techniques like hand picking, sieving, sedimentation and evaporation",
+          icon: "⚗️",
+          xp: 130,
+          mandatory: true,
+          moduleType: "standard",
+          subtopics: [
+            {
+              id: "mos-intro",
+              name: "Introduction",
+              lessonPrefix: "EXP -",
+              subtopicType: "core",
+              mandatory: true,
+              xp: 15,
+              description: "Dear Students,\nToday you will learn an important Science chapter:\n📘 Methods of Separation in Everyday Life\n\n✅ What you need to do\nOpen NotebookLM · Study the full chapter carefully · Learn slowly and clearly (don't rush!)\n\n🎯 Learning Rules\n✨ Take your time\n✨ Go step-by-step\n✨ Make sure you understand each concept with examples\n\n📌 Use these learning resources\n📊 PPT – to understand key points\n🎥 Explainer Video – to see concepts clearly\n🎧 Audio Support – to revise by listening\n🧠 Mind Map – to remember easily\n📝 Quiz – to check your learning\n\n🌈 Final Note\n👉 Explore, observe, and enjoy the learning journey!",
+              resources: [
+                {
+                  title: "NotebookLM",
+                  url: "https://notebooklm.google.com/notebook/07335a3c-57c0-4929-a781-2f8002eb809d?utm_source=classroom&utm_medium=referral&authuser=0",
+                  type: "link",
+                  platform: "NotebookLM"
+                }
+              ],
+              concepts: [
+                {
+                  title: "What are Methods of Separation?",
+                  body: "Mixtures are all around us — rice with stones, muddy water, salt in sea water. Methods of Separation are techniques used to separate the different parts of a mixture. The right method depends on the properties of the substances — their size, weight, solubility, and more.",
+                  visual: "✋ Hand Picking | 💨 Winnowing | 🕸️ Sieving | 🪣 Sedimentation | 🔬 Filtration | ☀️ Evaporation | 🧲 Magnetic",
+                  examples: ["Picking stones from rice → Hand Picking", "Separating husk from grain → Winnowing", "Sieving flour in the kitchen → Sieving", "Getting salt from sea water → Evaporation"]
+                }
+              ],
+              game: {
+                type: "mcq-game",
+                title: "Introduction Quiz!",
+                instructions: "Answer 3 questions about Methods of Separation",
+                items: [
+                  { question: "This chapter is about:", options: ["Properties of metals", "Methods of Separation in Everyday Life", "Types of chemicals", "States of matter"], correct: 1, hint: "Think about how we separate mixtures in daily life — rice, water, salt..." },
+                  { question: "Which tool are you asked to open and study from?", options: ["Calculator", "Dictionary", "NotebookLM", "Microscope"], correct: 2, hint: "You are asked to open a special learning tool to study the full chapter." },
+                  { question: "Which of the following is a correct learning rule for this chapter?", options: ["Rush through quickly", "Skip difficult parts", "Go step-by-step and understand each concept", "Only read the headings"], correct: 2, hint: "Good learning means taking your time and understanding each concept with examples." }
+                ]
+              },
+              assessment: [
+                { id: "mos-exp1-q1", question: "This chapter is about:", options: ["Properties of metals", "Methods of Separation in Everyday Life", "Types of chemicals", "States of matter"], correct: 1, explanation: "This chapter explores different methods used to separate mixtures in everyday life." },
+                { id: "mos-exp1-q2", question: "Which tool are you asked to open and study from?", options: ["Calculator", "Dictionary", "NotebookLM", "Microscope"], correct: 2, explanation: "You are asked to open NotebookLM and study the full chapter carefully." },
+                { id: "mos-exp1-q3", question: "Which of the following is a correct learning rule for this chapter?", options: ["Rush through quickly", "Skip difficult parts", "Go step-by-step and understand each concept", "Only read the headings"], correct: 2, explanation: "The learning rule is: take your time, go step-by-step, and make sure you understand each concept with examples." }
+              ],
+              aiHints: [
+                "We separate mixtures every day — think of straining tea or picking stones from rice!",
+                "The method of separation depends on the properties of the substances in the mixture.",
+                "No single method works for all mixtures — scientists choose based on particle size, density, and solubility."
+              ]
+            },
+            {
+              id: "mos-hand-picking",
+              name: "Hand Picking to understand the method",
+              lessonPrefix: "EXP -",
+              subtopicType: "core",
+              mandatory: true,
+              xp: 10,
+              description: "Hand picking is the simplest method of separation — used when impurities are large enough to be removed by hand. Study examples from daily life and understand when this method is most effective.",
+              resources: [
+                {
+                  title: "Hand Picking — Methods of Separation",
+                  url: "https://www.youtube.com/watch?v=rFzdOXSMXow&authuser=0",
+                  type: "video",
+                  platform: "YouTube"
+                }
+              ],
+              concepts: [
+                {
+                  title: "What is Hand Picking?",
+                  body: "Hand picking is the simplest method of separation. It is used when impurities or unwanted particles are large enough and clearly different in appearance so they can be removed by hand. It works only when particles are visibly distinguishable.",
+                  visual: "🍚 Rice + 🪨 Stones → ✋ Pick out the stones by hand → 🍚 Clean rice",
+                  examples: ["Removing stones from rice before cooking", "Picking out damaged seeds from good ones", "Separating pebbles from lentils (dal)"]
+                }
+              ],
+              game: {
+                type: "mcq-game",
+                title: "Hand Picking Quiz!",
+                instructions: "Answer 3 questions about Hand Picking",
+                items: [
+                  { question: "Hand picking is used when impurities are:", options: ["Too small to see", "Dissolved in water", "Large enough to remove by hand", "Magnetic"], correct: 2, hint: "Hand picking works when you can actually see and grab the unwanted particles." },
+                  { question: "Which of the following is an example of hand picking?", options: ["Filtering tea through a strainer", "Removing stones from rice", "Boiling salt water to get salt", "Using a magnet to pick iron"], correct: 1, hint: "Think of a common kitchen task — sorting through rice before washing it." },
+                  { question: "Hand picking is NOT suitable for mixtures where particles are:", options: ["Large and visible", "Different in colour", "Too fine or tiny to pick", "Heavier than liquid"], correct: 2, hint: "If particles are too small to see clearly, you cannot pick them out by hand." }
+                ]
+              },
+              assessment: [
+                { id: "mos-exp2-q1", question: "Hand picking is used when impurities are:", options: ["Too small to see", "Dissolved in water", "Large enough to remove by hand", "Magnetic"], correct: 2, explanation: "Hand picking works when impurities are large and visibly different — big enough to pick out by hand." },
+                { id: "mos-exp2-q2", question: "Which of the following is an example of hand picking?", options: ["Filtering tea through a strainer", "Removing stones from rice", "Boiling salt water to get salt", "Using a magnet to pick iron"], correct: 1, explanation: "Removing stones from rice is the most common everyday example of hand picking." },
+                { id: "mos-exp2-q3", question: "Hand picking is NOT suitable for mixtures where particles are:", options: ["Large and visible", "Different in colour", "Too fine or tiny to pick", "Heavier than liquid"], correct: 2, explanation: "Hand picking fails when particles are too small or fine — other methods like sieving or filtration are needed." }
+              ],
+              aiHints: [
+                "Hand picking works best when particles are large and visibly different.",
+                "It is not suitable for very fine mixtures — use sieving or filtration instead.",
+                "In kitchens, hand picking rice and lentils is a common everyday example."
+              ]
+            },
+            {
+              id: "mos-winnowing",
+              name: "Winnowing to learn how it separates mixtures",
+              lessonPrefix: "EXP -",
+              subtopicType: "core",
+              mandatory: true,
+              xp: 10,
+              description: "Winnowing uses wind or blowing air to separate lighter particles (like husk) from heavier ones (like grain). Watch the demonstration and understand the science behind this ancient technique.",
+              resources: [
+                {
+                  title: "Winnowing — Methods of Separation",
+                  url: "https://www.youtube.com/watch?v=0ZXmXWpMyF8&authuser=0",
+                  type: "video",
+                  platform: "YouTube"
+                }
+              ],
+              concepts: [
+                {
+                  title: "What is Winnowing?",
+                  body: "Winnowing uses wind or blowing air to separate lighter particles from heavier ones. When a mixture is poured from a height or blown, the heavier particles (like grain) fall straight down, while the lighter particles (like husk) are blown sideways and fall separately.",
+                  visual: "🌾 Grain + Husk mixture → 💨 Blow air → 🌾 Heavy grain falls down | 🍂 Light husk blown away",
+                  examples: ["Farmers separating grain from husk after harvesting", "Blowing rice to remove light chaff", "Traditional threshing in villages using natural wind"]
+                }
+              ],
+              game: {
+                type: "mcq-game",
+                title: "Winnowing Quiz!",
+                instructions: "Answer 3 questions about Winnowing",
+                items: [
+                  { question: "Winnowing uses ___ to separate a mixture.", options: ["Water", "A magnet", "Heat", "Wind or blowing air"], correct: 3, hint: "Think about what farmers use — something natural and free that blows through the air." },
+                  { question: "In winnowing, the lighter particles are:", options: ["Burned away", "Dissolved in water", "Blown away by wind", "Picked up by hand"], correct: 2, hint: "Light objects like husk move easily when air blows — where do they go?" },
+                  { question: "Winnowing is mainly used to separate:", options: ["Salt from sea water", "Iron from sand", "Grain from husk", "Sugar from tea"], correct: 2, hint: "This method is used in farming — think about what is separated after harvesting wheat or rice." }
+                ]
+              },
+              assessment: [
+                { id: "mos-exp3-q1", question: "Winnowing uses ___ to separate a mixture.", options: ["Water", "A magnet", "Heat", "Wind or blowing air"], correct: 3, explanation: "Winnowing uses wind or blowing air to separate lighter particles from heavier ones." },
+                { id: "mos-exp3-q2", question: "In winnowing, the lighter particles are:", options: ["Burned away", "Dissolved in water", "Blown away by wind", "Picked up by hand"], correct: 2, explanation: "Lighter particles (like husk) are blown away by the wind, while heavier grains fall in a pile." },
+                { id: "mos-exp3-q3", question: "Winnowing is mainly used to separate:", options: ["Salt from sea water", "Iron from sand", "Grain from husk", "Sugar from tea"], correct: 2, explanation: "Farmers use winnowing to separate grain from husk — the husk is lighter and gets blown away." }
+              ],
+              aiHints: [
+                "Winnowing relies on the difference in weight between particles.",
+                "Heavier particles fall straight down; lighter ones are blown sideways.",
+                "This is one of the oldest separation methods — used for thousands of years in agriculture."
+              ]
+            },
+            {
+              id: "mos-sieving",
+              name: "Sieving to understand particle size separation",
+              lessonPrefix: "EXP -",
+              subtopicType: "core",
+              mandatory: true,
+              xp: 10,
+              description: "Sieving separates mixtures based on particle size using a mesh or net. Explore how flour is sieved, and how this method is used in construction and cooking.",
+              resources: [
+                {
+                  title: "Sieving — Methods of Separation",
+                  url: "https://www.youtube.com/watch?v=Qt2OZsuL2vQ&authuser=0",
+                  type: "video",
+                  platform: "YouTube"
+                }
+              ],
+              concepts: [
+                {
+                  title: "What is Sieving?",
+                  body: "Sieving separates a mixture based on particle size using a mesh, net, or perforated surface. Smaller particles pass through the holes, while larger particles are held back on top. The size of the holes in the sieve determines what gets separated.",
+                  visual: "🌾 Flour + lumps → 🕸️ Sieve → Fine flour passes through ↓ | Lumps stay on top ↑",
+                  examples: ["Sieving flour to remove lumps before baking", "Construction workers sieving sand to remove pebbles", "Straining pasta using a colander (large sieve)"]
+                }
+              ],
+              game: {
+                type: "mcq-game",
+                title: "Sieving Quiz!",
+                instructions: "Answer 3 questions about Sieving",
+                items: [
+                  { question: "A sieve separates mixtures based on:", options: ["Colour", "Weight", "Magnetic properties", "Particle size"], correct: 3, hint: "Look at a sieve — it has holes. What determines what passes through those holes?" },
+                  { question: "Which is an everyday example of sieving?", options: ["Pouring water out of a bucket", "Sieving flour to remove lumps", "Leaving muddy water to settle", "Heating salt water"], correct: 1, hint: "Think of a common kitchen activity done before making chapati dough." },
+                  { question: "In sieving, the smaller particles:", options: ["Stay on top of the sieve", "Are blown away by wind", "Pass through the holes", "Dissolve in water"], correct: 2, hint: "Small particles can fit through the holes in the sieve mesh — which way do they go?" }
+                ]
+              },
+              assessment: [
+                { id: "mos-exp4-q1", question: "A sieve separates mixtures based on:", options: ["Colour", "Weight", "Magnetic properties", "Particle size"], correct: 3, explanation: "Sieving separates particles based on size — smaller ones pass through the holes, larger ones stay on top." },
+                { id: "mos-exp4-q2", question: "Which is an everyday example of sieving?", options: ["Pouring water out of a bucket", "Sieving flour to remove lumps", "Leaving muddy water to settle", "Heating salt water"], correct: 1, explanation: "Sieving flour to remove lumps and bran is a very common kitchen example of this method." },
+                { id: "mos-exp4-q3", question: "In sieving, the smaller particles:", options: ["Stay on top of the sieve", "Are blown away by wind", "Pass through the holes", "Dissolve in water"], correct: 2, explanation: "Smaller particles pass through the sieve holes while larger particles remain on top." }
+              ],
+              aiHints: [
+                "The size of the holes in the sieve determines what passes through.",
+                "Sieving only works when particle sizes are clearly different.",
+                "Construction workers use large sieves to separate sand from stones."
+              ]
+            },
+            {
+              id: "mos-sedimentation",
+              name: "Sedimentation, Decantation and Filtration",
+              lessonPrefix: "EXP -",
+              subtopicType: "core",
+              mandatory: true,
+              xp: 15,
+              description: "Learn three connected methods: sedimentation (heavier particles settle), decantation (pouring off the liquid) and filtration (passing through a filter). These are widely used in water purification.",
+              resources: [
+                {
+                  title: "Sedimentation, Decantation & Filtration",
+                  url: "https://www.youtube.com/watch?v=sBCLafMPVt8&authuser=0",
+                  type: "video",
+                  platform: "YouTube"
+                }
+              ],
+              concepts: [
+                {
+                  title: "Sedimentation, Decantation & Filtration",
+                  body: "These three methods work together to separate solids from liquids. Sedimentation: heavier particles settle at the bottom when left undisturbed. Decantation: the clear liquid is carefully poured off, leaving the sediment. Filtration: the remaining liquid is passed through filter paper to remove fine particles.",
+                  visual: "🪣 Muddy water → ⏳ Leave it still (Sedimentation) → 🫗 Pour off clear water (Decantation) → 📋 Filter remaining (Filtration)",
+                  examples: ["Water treatment plants use all three methods to purify water", "Muddy water left to settle → soil sinks down", "Pouring tea through a strainer → filtration", "Letting coconut milk settle before pouring off the cream"]
+                }
+              ],
+              game: {
+                type: "mcq-game",
+                title: "Sedimentation Quiz!",
+                instructions: "Answer 3 questions about Sedimentation, Decantation & Filtration",
+                items: [
+                  { question: "When muddy water is left undisturbed and soil settles at the bottom, it is called:", options: ["Filtration", "Winnowing", "Evaporation", "Sedimentation"], correct: 3, hint: "Heavier particles slowly sink — what is the process called when particles settle to the bottom?" },
+                  { question: "Decantation means:", options: ["Heating a liquid until it evaporates", "Passing liquid through filter paper", "Carefully pouring off the clear liquid without disturbing the sediment", "Using a magnet to separate materials"], correct: 2, hint: "After sedimentation, you carefully pour the clear liquid — this pouring action has a special name." },
+                  { question: "Filtration is used to separate:", options: ["Lighter particles using wind", "Dissolved salts from water", "Insoluble solids from a liquid", "Magnetic substances from sand"], correct: 2, hint: "Filter paper has tiny pores — what kind of particles does it hold back?" }
+                ]
+              },
+              assessment: [
+                { id: "mos-exp5-q1", question: "When muddy water is left undisturbed and soil settles at the bottom, it is called:", options: ["Filtration", "Winnowing", "Evaporation", "Sedimentation"], correct: 3, explanation: "Sedimentation is the process where heavier particles settle to the bottom of a liquid when left undisturbed." },
+                { id: "mos-exp5-q2", question: "Decantation means:", options: ["Heating a liquid until it evaporates", "Passing liquid through filter paper", "Carefully pouring off the clear liquid without disturbing the sediment", "Using a magnet to separate materials"], correct: 2, explanation: "Decantation is carefully pouring the clear liquid (supernatant) from a sedimented mixture, leaving the sediment behind." },
+                { id: "mos-exp5-q3", question: "Filtration is used to separate:", options: ["Lighter particles using wind", "Dissolved salts from water", "Insoluble solids from a liquid", "Magnetic substances from sand"], correct: 2, explanation: "Filtration uses filter paper to separate insoluble solid particles from a liquid — removing particles too fine to settle." }
+              ],
+              aiHints: [
+                "Sedimentation + decantation + filtration are three steps often used together.",
+                "Water treatment plants use all three methods to make water safe.",
+                "Filtration removes particles too small to settle on their own."
+              ]
+            },
+            {
+              id: "mos-evaporation",
+              name: "Evaporation and Condensation",
+              lessonPrefix: "EXP -",
+              subtopicType: "core",
+              mandatory: true,
+              xp: 10,
+              description: "Evaporation removes liquid from a solution to obtain dissolved solids. Condensation is the reverse — vapour turns back into liquid. Both methods are used in salt making and water purification.",
+              resources: [
+                {
+                  title: "Evaporation and Condensation",
+                  url: "https://www.youtube.com/watch?v=SfzUBe7lp44&authuser=0",
+                  type: "video",
+                  platform: "YouTube"
+                }
+              ],
+              concepts: [
+                {
+                  title: "Evaporation and Condensation",
+                  body: "Evaporation is used to separate a dissolved solid from a liquid. When the liquid is heated, it turns into vapour and escapes into the air, leaving the dissolved solid behind. Condensation is the reverse — when vapour cools, it turns back into liquid. Evaporation is used to obtain salt from sea water.",
+                  visual: "🌊 Sea water (water + salt) → ☀️ Heat/Sunlight → 💧 Water evaporates → 🧂 Salt crystals remain",
+                  examples: ["Getting salt from sea water in coastal salt pans", "Clothes drying in the sun — water evaporates", "Steam from a hot cup turns back to water drops (condensation)", "Dew on leaves in the morning — condensation of water vapour"]
+                }
+              ],
+              game: {
+                type: "mcq-game",
+                title: "Evaporation Quiz!",
+                instructions: "Answer 3 questions about Evaporation and Condensation",
+                items: [
+                  { question: "In evaporation, the liquid:", options: ["Freezes into a solid", "Falls to the bottom", "Turns into vapour and escapes into the air", "Becomes magnetic"], correct: 2, hint: "When you heat water on a stove and it disappears — what is happening to the water?" },
+                  { question: "Salt is obtained from sea water by:", options: ["Sieving", "Filtration", "Decantation", "Evaporation"], correct: 3, hint: "Sea water is left in the sun in large flat pans — the water disappears and what is left behind?" },
+                  { question: "Condensation is the reverse of evaporation — in condensation, vapour changes back into:", options: ["Ice", "Gas", "Liquid water", "Solid salt"], correct: 2, hint: "Think of a cold glass on a hot day — water droplets appear on the outside. What is forming?" }
+                ]
+              },
+              assessment: [
+                { id: "mos-exp6-q1", question: "In evaporation, the liquid:", options: ["Freezes into a solid", "Falls to the bottom", "Turns into vapour and escapes into the air", "Becomes magnetic"], correct: 2, explanation: "During evaporation, liquid is heated and turns into vapour, leaving behind any dissolved solid." },
+                { id: "mos-exp6-q2", question: "Salt is obtained from sea water by:", options: ["Sieving", "Filtration", "Decantation", "Evaporation"], correct: 3, explanation: "Sea water is heated or left in the sun — water evaporates and salt crystals remain behind." },
+                { id: "mos-exp6-q3", question: "Condensation is the reverse of evaporation — in condensation, vapour changes back into:", options: ["Ice", "Gas", "Liquid water", "Solid salt"], correct: 2, explanation: "In condensation, water vapour cools down and turns back into liquid water — the reverse of evaporation." }
+              ],
+              aiHints: [
+                "Evaporation works when you want the dissolved SOLID — not the liquid.",
+                "Condensation is the reverse: vapour cools and turns back into liquid.",
+                "Indian coastal states produce salt using solar evaporation pans."
+              ]
+            },
+            {
+              id: "mos-sorting",
+              name: "Sorting and Separation of Materials",
+              lessonPrefix: "EXP -",
+              subtopicType: "core",
+              mandatory: true,
+              xp: 10,
+              description: "Sorting groups materials by properties like size, colour, shape or magnetic attraction. Explore how magnetic separation is used in industries and recycling plants.",
+              resources: [
+                {
+                  title: "Sorting and Separation of Materials",
+                  url: "https://www.youtube.com/watch?v=FhRIMy7bmmM&authuser=0",
+                  type: "video",
+                  platform: "YouTube"
+                }
+              ],
+              concepts: [
+                {
+                  title: "Sorting and Magnetic Separation",
+                  body: "Sorting means grouping materials by their observable properties — size, colour, shape, weight, or whether they are magnetic. Magnetic separation is a special sorting method where a magnet is used to pull out magnetic materials (like iron and steel) from a mixture. Recycling plants use large electromagnets for this purpose.",
+                  visual: "🧲 Magnet → attracts iron/steel only → 🔩 Metal separated | 🪨 Non-magnetic materials stay behind",
+                  examples: ["Recycling plants using electromagnets to separate scrap iron", "Separating iron filings from sand using a magnet", "Sorting coloured beads by colour", "Separating large and small stones by size"]
+                }
+              ],
+              game: {
+                type: "mcq-game",
+                title: "Sorting Quiz!",
+                instructions: "Answer 3 questions about Sorting and Magnetic Separation",
+                items: [
+                  { question: "Magnetic separation uses a magnet to separate materials containing:", options: ["Gold", "Sand", "Iron or steel", "Sugar"], correct: 2, hint: "A magnet only attracts certain metals — which common metal is attracted to a magnet?" },
+                  { question: "Which industry commonly uses magnetic separation?", options: ["Bakery", "Salt factories", "Recycling plants", "Dairy farms"], correct: 2, hint: "This industry processes old scrap and waste materials — they use large electromagnets to sort metals." },
+                  { question: "Sorting materials by size, colour, shape or type is called:", options: ["Filtration", "Winnowing", "Evaporation", "Classification or Sorting"], correct: 3, hint: "When you group objects by how they look or what they are, what do you call that process?" }
+                ]
+              },
+              assessment: [
+                { id: "mos-exp7-q1", question: "Magnetic separation uses a magnet to separate materials containing:", options: ["Gold", "Sand", "Iron or steel", "Sugar"], correct: 2, explanation: "Magnets attract iron and steel — magnetic separation is used to pull these metals out of a mixture." },
+                { id: "mos-exp7-q2", question: "Which industry commonly uses magnetic separation?", options: ["Bakery", "Salt factories", "Recycling plants", "Dairy farms"], correct: 2, explanation: "Recycling plants use large electromagnets to separate scrap iron and steel from other waste materials." },
+                { id: "mos-exp7-q3", question: "Sorting materials by size, colour, shape or type is called:", options: ["Filtration", "Winnowing", "Evaporation", "Classification or Sorting"], correct: 3, explanation: "Sorting or classification groups materials by their observable properties — size, colour, shape or magnetic attraction." }
+              ],
+              aiHints: [
+                "Magnetic separation only works for magnetic materials like iron and steel.",
+                "Recycling centres use large electromagnets to sort scrap metal.",
+                "Non-magnetic metals like aluminium and copper need other separation methods."
+              ]
+            },
+            {
+              id: "mos-visual-poster",
+              name: "Visual Poster",
+              lessonPrefix: "EXP -",
+              subtopicType: "core",
+              mandatory: true,
+              xp: 10,
+              description: "Review the visual summary poster showing all methods of separation with diagrams, examples and key vocabulary. Use this poster as a revision tool before the practice activities.",
+              resources: [],
+              concepts: [
+                {
+                  title: "Summary: All Methods at a Glance",
+                  body: "A visual poster brings together all separation methods with diagrams and key facts.",
+                  visual: "✋ Hand Picking → 💨 Winnowing → 🕸️ Sieving → 🪣 Sedimentation → 🚰 Filtration → ☀️ Evaporation → 🧲 Magnetic",
+                  examples: ["Each method matches a specific type of mixture", "Choose the method based on properties of the mixture", "Multiple methods can be combined for complex separations"]
+                }
+              ],
+              aiHints: [
+                "Use the poster to remember all seven methods with one glance.",
+                "Pin this to your study wall — visual memory is powerful!",
+                "Try to recall one real-life example for each method."
+              ]
+            },
+            {
+              id: "mos-word-search",
+              name: "Word Search",
+              lessonPrefix: "IMP -",
+              subtopicType: "core",
+              mandatory: true,
+              xp: 10,
+              description: "Find all key vocabulary words from the chapter hidden in the word search grid. Helps reinforce important science terms like sedimentation, filtration, evaporation and condensation.",
+              resources: [],
+              aiHints: [
+                "Words can be hidden horizontally, vertically or diagonally.",
+                "Key words: SIEVING, WINNOWING, FILTRATION, EVAPORATION, DECANTATION, SEDIMENTATION.",
+                "Completing word searches strengthens vocabulary memory!"
+              ]
+            },
+            {
+              id: "mos-activity",
+              name: "Activity",
+              lessonPrefix: "INT & IMP -",
+              subtopicType: "core",
+              mandatory: true,
+              xp: 15,
+              description: "Hands-on activity: Choose a separation method and demonstrate it using materials at home (rice + stones, muddy water, or salt water). Record your observations and explain which method you used and why.",
+              resources: [],
+              aiHints: [
+                "You can use rice + stones for hand picking, or muddy water for sedimentation.",
+                "Record: What did you separate? Which method? What did you observe?",
+                "Real experiments make concepts stick — science is meant to be hands-on!"
+              ]
+            },
+            {
+              id: "mos-mcq",
+              name: "MCQ",
+              lessonPrefix: "IMP -",
+              subtopicType: "core",
+              mandatory: true,
+              xp: 15,
+              description: "Multiple choice questions covering all methods of separation. Test your understanding of when and why each method is used.",
+              resources: [],
+              game: {
+                type: "mcq-game",
+                title: "Methods of Separation Quiz!",
+                instructions: "Choose the correct answer for each question",
+                items: [
+                  { question: "Which method is used to separate sand from water?", options: ["Winnowing", "Hand picking", "Filtration", "Evaporation"], correct: 2, hint: "A filter paper is used to separate insoluble solids from liquids." },
+                  { question: "Salt is obtained from sea water by:", options: ["Sieving", "Evaporation", "Decantation", "Hand picking"], correct: 1, hint: "The liquid is removed by heating, leaving the solid salt behind." },
+                  { question: "Which separation method uses a magnet?", options: ["Sieving", "Winnowing", "Magnetic separation", "Filtration"], correct: 2, hint: "Magnets attract iron and steel — used in recycling plants." },
+                  { question: "Heavier particles settling at the bottom of a liquid is called:", options: ["Filtration", "Evaporation", "Sedimentation", "Winnowing"], correct: 2, hint: "The particles 'sediment' — they sink to the bottom." },
+                  { question: "Winnowing separates mixtures based on:", options: ["Colour", "Particle size", "Weight difference", "Solubility"], correct: 2, hint: "Lighter particles are blown away while heavier ones fall down." }
+                ]
+              },
+              aiHints: [
+                "Think about the PROPERTY used to separate — size, weight, solubility, or magnetism.",
+                "Each method has a specific use case — match the method to the mixture type.",
+                "Review your notes before attempting the MCQ!"
+              ]
+            },
+            {
+              id: "mos-mnemonics",
+              name: "Mnemonics",
+              lessonPrefix: "IMP -",
+              subtopicType: "core",
+              mandatory: true,
+              xp: 10,
+              description: "Memory tricks to remember all separation methods easily. Use the mnemonic 'HWSSDEF' — Hand picking, Winnowing, Sieving, Sedimentation, Decantation, Evaporation, Filtration!",
+              resources: [],
+              concepts: [
+                {
+                  title: "Remember All Methods with HWSSDEF",
+                  body: "Use this mnemonic to recall all seven separation methods in order.",
+                  visual: "H – Hand Picking\nW – Winnowing\nS – Sieving\nS – Sedimentation\nD – Decantation\nE – Evaporation\nF – Filtration",
+                  examples: [
+                    "H = Hand Picking → remove stones from rice",
+                    "W = Winnowing → blow husk from grain",
+                    "S = Sieving → flour through a mesh",
+                    "S = Sedimentation → soil settles in water",
+                    "D = Decantation → pour off the clear water",
+                    "E = Evaporation → heat sea water to get salt",
+                    "F = Filtration → filter paper removes fine particles"
+                  ]
+                }
+              ],
+              aiHints: [
+                "HWSSDEF — say it out loud 3 times to memorise it!",
+                "Link each letter to a vivid real-life image in your mind.",
+                "Mnemonics are brain shortcuts — your memory loves them."
+              ]
+            },
+            {
+              id: "mos-worksheet",
+              name: "Worksheet",
+              lessonPrefix: "EVA -",
+              subtopicType: "core",
+              mandatory: true,
+              xp: 20,
+              description: "Complete the evaluation worksheet on Methods of Separation. Fill in diagrams, match the method to the example, and answer short questions to demonstrate full chapter mastery.",
+              resources: [],
+              aiHints: [
+                "Read each question carefully before answering.",
+                "Use the HWSSDEF mnemonic if you get stuck.",
+                "Diagrams earn extra marks — label them clearly!"
+              ]
+            }
+          ]
         }
       ]
     },
@@ -1362,7 +1815,7 @@ const GK_TOPICS = {
           icon: "🗳️",
           xp: 120,
           mandatory: true,
-          moduleType: "standard",
+          moduleType: "next-path",
           subtopics: [
             {
               id: "what-is-government",

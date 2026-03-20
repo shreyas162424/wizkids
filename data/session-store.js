@@ -1,510 +1,682 @@
 // ============================================================
 // DATA LAYER: session-store.js
-// Persistent storage wrapper using localStorage.
-// All read/write operations on session and user data go here.
+// All application state accessed via GKDatabase in-memory cache.
+//
+// Public API is identical to the previous sql.js version so that
+// all callers in app.js, mentor-app.js, and business-logic files
+// continue to work without modification.
+//
+// Design rules:
+//   1. Every exported function is synchronous — reads come from _c.
+//   2. Writes update _c immediately, then fire GKDatabase._post() async
+//      (write-behind / fire-and-forget).
+//   3. _triggerSync() is a no-op — the server broadcasts SSE 'update'
+//      events to all mentor clients after every write endpoint call.
 // ============================================================
 
 const GKStore = (() => {
-  const KEYS = {
-    CURRENT_USER: 'gk_current_user',
-    USER_PROFILES: 'gk_user_profiles',
-    SESSION_LOG: 'gk_session_log',
-    CURRENT_SESSION: 'gk_current_session'
-  };
 
-  // ---------- User Auth ----------
+  // Alias to the shared in-memory cache populated by GKDatabase.init()
+  const _c = GKDatabase.getCache();
+
+  // ── Helpers ───────────────────────────────────────────────────────────────
+
+  /** No-op: SSE handles real-time mentor sync server-side. */
+  function _triggerSync() {}
+
+  function _post(url, data) { GKDatabase._post(url, data); }
+
+  function _now() { return new Date().toISOString(); }
+
+  function _ensureArr(obj, userId) {
+    if (!obj[userId]) obj[userId] = [];
+    return obj[userId];
+  }
+
+  function _ensureObj(obj, userId) {
+    if (!obj[userId]) obj[userId] = {};
+    return obj[userId];
+  }
+
+  // ── Auth ─────────────────────────────────────────────────────────────────
 
   function saveCurrentUser(userId) {
-    localStorage.setItem(KEYS.CURRENT_USER, userId);
+    _c.authSession.userId = userId;
+    _post('/api/auth/login', { userId });
   }
 
   function getCurrentUserId() {
-    return localStorage.getItem(KEYS.CURRENT_USER);
+    return _c.authSession.userId || null;
   }
 
   function clearCurrentUser() {
-    localStorage.removeItem(KEYS.CURRENT_USER);
-    localStorage.removeItem(KEYS.CURRENT_SESSION);
+    const userId = getCurrentUserId();
+    _c.authSession.userId = null;
+    if (userId && _c.activeSessions[userId]) {
+      delete _c.activeSessions[userId];
+    }
+    _post('/api/auth/logout', { userId });
+    _triggerSync();
   }
 
-  // ---------- User Profiles (persisted XP, completed topics) ----------
+  // ── User profile ──────────────────────────────────────────────────────────
+  // Reconstructs the same shape as the previous sql.js version from cache.
 
   function getUserProfile(userId) {
-    const profiles = JSON.parse(localStorage.getItem(KEYS.USER_PROFILES) || '{}');
-    const profile = profiles[userId] || null;
-    if (profile) {
-      // Merge in any demo overrides so mentor can see them
-      const overrides = JSON.parse(localStorage.getItem('gk_demo_overrides_' + userId) || '{}');
-      profile.overrides = overrides;
-    }
-    return profile;
+    const user = _c.users[userId];
+    if (!user) return null;
+
+    const xpData = _c.xp[userId] || { totalXP: 0, level: 1, isPromoted: false, promotedAt: null };
+
+    const completedTopics    = _c.topicCompletions[userId]    || [];
+    const stArr              = _c.subtopicCompletions[userId]  || [];
+    const completedSubtopics = stArr.map(e => (typeof e === 'string' ? e : e.key));
+
+    const subtopicScores    = _c.subtopicScores[userId]    || {};
+    const assessmentAttempts = _c.assessmentAttempts[userId] || {};
+
+    const mentorNotes   = _c.mentorNotes[userId]   || [];
+    const mentorRewards = _c.mentorRewards[userId]  || [];
+
+    const locks         = _c.topicLocks[userId]    || {};
+    const unlockedTopics = Object.keys(locks).filter(k => !locks[k]);
+    const lockedTopics   = Object.keys(locks).filter(k =>  locks[k]);
+
+    const quickCheckResults = _c.quickCheckResults[userId] || [];
+    const holisticScores    = _c.holisticScores[userId]    || null;
+    const subtopicFeedback  = _c.subtopicFeedback[userId]  || {};
+    const moduleFeedback    = _c.moduleFeedback[userId]    || {};
+    const overrides         = _c.demoOverrides[userId]     || {};
+    const extra             = _c.userExtras[userId]        || {};
+
+    return {
+      // Identity
+      id:             user.id,
+      username:       user.username,
+      displayName:    user.display_name,
+      grade:          user.grade,
+      avatar:         user.avatar,
+      photo:          user.photo,
+      joinDate:       user.join_date,
+      preferredStyle: user.preferred_style,
+      persona:        user.persona,
+      role:           user.role,
+      // XP & gamification
+      totalXP:    xpData.totalXP,
+      level:      xpData.level,
+      isPromoted: xpData.isPromoted,
+      promotedAt: xpData.promotedAt,
+      // Progress
+      completedTopics, completedSubtopics,
+      subtopicScores, assessmentAttempts,
+      // Social & mentor
+      mentorNotes, mentorRewards,
+      unlockedTopics, lockedTopics,
+      quickCheckResults,
+      holisticScores,
+      subtopicFeedback, moduleFeedback,
+      overrides,
+      // Extra fields spread last (adminNotes, parentNotes, …)
+      ...extra
+    };
   }
 
+  // Compatibility shim: routes multi-field blob to server (same as sql.js version did).
   function saveUserProfile(userId, profileData) {
-    const profiles = JSON.parse(localStorage.getItem(KEYS.USER_PROFILES) || '{}');
-    profiles[userId] = { ...profiles[userId], ...profileData, updatedAt: new Date().toISOString() };
-    localStorage.setItem(KEYS.USER_PROFILES, JSON.stringify(profiles));
-    localStorage.setItem('gk_sync_ping', Date.now().toString());
+    // --- update local cache ---
+    if (profileData.totalXP !== undefined || profileData.level !== undefined ||
+        profileData.isPromoted !== undefined || profileData.promotedAt !== undefined) {
+      const xp = _c.xp[userId] || { totalXP: 0, level: 1, isPromoted: false, promotedAt: null };
+      _c.xp[userId] = {
+        totalXP:    profileData.totalXP    ?? xp.totalXP,
+        level:      profileData.level      ?? xp.level,
+        isPromoted: profileData.isPromoted !== undefined ? !!profileData.isPromoted : xp.isPromoted,
+        promotedAt: profileData.promotedAt ?? xp.promotedAt
+      };
+    }
+    if (Array.isArray(profileData.completedTopics)) {
+      const arr = _ensureArr(_c.topicCompletions, userId);
+      profileData.completedTopics.forEach(t => { if (!arr.includes(t)) arr.push(t); });
+    }
+    if (Array.isArray(profileData.completedSubtopics)) {
+      const arr = _ensureArr(_c.subtopicCompletions, userId);
+      const existing = arr.map(e => (typeof e === 'string' ? e : e.key));
+      profileData.completedSubtopics.forEach(k => {
+        if (!existing.includes(k)) arr.push({ key: k, completedAt: _now() });
+      });
+    }
+    if (profileData.subtopicScores && typeof profileData.subtopicScores === 'object') {
+      const sc = _ensureObj(_c.subtopicScores, userId);
+      Object.entries(profileData.subtopicScores).forEach(([key, v]) => {
+        if (!sc[key] || v.score >= sc[key].score) sc[key] = v;
+      });
+    }
+    if (Array.isArray(profileData.mentorNotes)) {
+      _c.mentorNotes[userId] = profileData.mentorNotes;
+    }
+    if (Array.isArray(profileData.unlockedTopics) || Array.isArray(profileData.lockedTopics)) {
+      const locks = {};
+      (profileData.unlockedTopics || []).forEach(k => { locks[k] = 0; });
+      (profileData.lockedTopics   || []).forEach(k => { locks[k] = 1; });
+      _c.topicLocks[userId] = locks;
+    }
+    if (profileData.holisticScores) {
+      _c.holisticScores[userId] = profileData.holisticScores;
+    }
+    // --- write to server ---
+    _post('/api/profile/save', { userId, profileData });
+    _triggerSync();
   }
+
+  // ── XP helpers ────────────────────────────────────────────────────────────
 
   function getTotalXP(userId) {
-    const profile = getUserProfile(userId);
-    return (profile && profile.totalXP) ? profile.totalXP : 0;
+    return (_c.xp[userId] || {}).totalXP || 0;
   }
 
   function addXPToUser(userId, xpAmount) {
-    const profile = getUserProfile(userId) || { totalXP: 0, completedTopics: [] };
-    profile.totalXP = (profile.totalXP || 0) + xpAmount;
-    saveUserProfile(userId, profile);
-    return profile.totalXP;
+    const xp = _c.xp[userId] || { totalXP: 0, level: 1, isPromoted: false, promotedAt: null };
+    xp.totalXP = (xp.totalXP || 0) + xpAmount;
+    _c.xp[userId] = xp;
+    _post('/api/xp/add', { userId, amount: xpAmount });
+    _triggerSync();
+    return xp.totalXP;
   }
 
   function markTopicComplete(userId, topicId) {
     if (!userId) return;
-    const profile = getUserProfile(userId) || { id: userId, totalXP: 0, completedTopics: [] };
-    if (!profile.completedTopics) profile.completedTopics = [];
-    if (!profile.completedTopics.includes(topicId)) {
-      profile.completedTopics.push(topicId);
-    }
-    saveUserProfile(userId, profile);
+    const arr = _ensureArr(_c.topicCompletions, userId);
+    if (!arr.includes(topicId)) arr.push(topicId);
+    _post('/api/progress/topic-complete', { userId, topicId });
+    _triggerSync();
   }
 
-  // ---------- Current Session ----------
+  // ── Session ───────────────────────────────────────────────────────────────
 
   function startSession(userId, moodData) {
-    const session = {
+    _c.activeSessions[userId] = {
       userId,
-      startTime: new Date().toISOString(),
-      mood: moodData,
-      xpEarned: 0,
-      completedSubtopics: [],
-      assessmentResults: {},
-      feedback: null
+      startTime: _now(),
+      mood:      moodData || {},
+      xpEarned:  0,
+      feedbackJson: null
     };
-    localStorage.setItem(KEYS.CURRENT_SESSION, JSON.stringify(session));
-    return session;
+    _post('/api/session/start', { userId, moodData: moodData || {} });
+    return getSession();
   }
 
   function getSession() {
-    return JSON.parse(localStorage.getItem(KEYS.CURRENT_SESSION) || 'null');
+    const userId = getCurrentUserId();
+    if (!userId) return null;
+    const sess = _c.activeSessions[userId];
+    if (!sess) return null;
+
+    const stArr = _c.subtopicCompletions[userId] || [];
+    const completedSubtopics = stArr
+      .filter(e => {
+        const at = typeof e === 'string' ? null : e.completedAt;
+        return !at || at >= sess.startTime;
+      })
+      .map(e => (typeof e === 'string' ? e : e.key));
+
+    // Latest assessment result per topic since session start
+    const assessmentResults = {};
+    const attempts = _c.assessmentAttempts[userId] || {};
+    Object.entries(attempts).forEach(([topicKey, list]) => {
+      list.forEach(a => {
+        if (a.attemptedAt >= sess.startTime) {
+          assessmentResults[topicKey] = {
+            score: a.score, total: a.total, percentage: a.percentage
+          };
+        }
+      });
+    });
+
+    return {
+      userId,
+      startTime:          sess.startTime,
+      mood:               sess.mood || {},
+      xpEarned:           sess.xpEarned || 0,
+      completedSubtopics,
+      assessmentResults,
+      feedback:           sess.feedbackJson ? JSON.parse(sess.feedbackJson) : null
+    };
   }
 
   function updateSession(updates) {
-    const session = getSession() || {};
-    const updated = { ...session, ...updates };
-    localStorage.setItem(KEYS.CURRENT_SESSION, JSON.stringify(updated));
-    localStorage.setItem('gk_sync_ping', Date.now().toString());
-    return updated;
+    const userId = getCurrentUserId();
+    if (!userId) return {};
+    const sess = _c.activeSessions[userId];
+    if (!sess) return {};
+
+    if (updates.mood     !== undefined) sess.mood     = updates.mood;
+    if (updates.xpEarned !== undefined) sess.xpEarned = updates.xpEarned;
+    if (updates.feedback !== undefined) sess.feedbackJson = JSON.stringify(updates.feedback);
+
+    _post('/api/session/update', {
+      userId,
+      mood:       sess.mood,
+      xpEarned:   sess.xpEarned,
+      feedback:   updates.feedback
+    });
+    _triggerSync();
+    return getSession();
   }
 
   function addSessionXP(xpAmount) {
-    const session = getSession() || { xpEarned: 0 };
-    session.xpEarned = (session.xpEarned || 0) + xpAmount;
-    localStorage.setItem(KEYS.CURRENT_SESSION, JSON.stringify(session));
-    return session.xpEarned;
+    const userId = getCurrentUserId();
+    if (!userId) return 0;
+    const sess = _c.activeSessions[userId];
+    if (!sess) return 0;
+    sess.xpEarned = (sess.xpEarned || 0) + xpAmount;
+    _post('/api/session/xp', { userId, amount: xpAmount });
+    return sess.xpEarned;
   }
 
   function recordSubtopicComplete(subtopicId) {
-    const session = getSession() || { completedSubtopics: [] };
-    if (!session.completedSubtopics) session.completedSubtopics = [];
-    if (!session.completedSubtopics.includes(subtopicId)) {
-      session.completedSubtopics.push(subtopicId);
+    const sess = getSession();
+    if (!sess) return;
+    const arr = _ensureArr(_c.subtopicCompletions, sess.userId);
+    const existing = arr.map(e => (typeof e === 'string' ? e : e.key));
+    if (!existing.includes(subtopicId)) {
+      arr.push({ key: subtopicId, completedAt: _now() });
     }
-    localStorage.setItem(KEYS.CURRENT_SESSION, JSON.stringify(session));
-    localStorage.setItem('gk_sync_ping', Date.now().toString());
-
-    // Real-time mentor sync: also push immediately to the profile
-    if (session.userId) {
-      const profile = getUserProfile(session.userId) || {};
-      if (!profile.completedSubtopics) profile.completedSubtopics = [];
-      if (!profile.completedSubtopics.includes(subtopicId)) {
-        profile.completedSubtopics.push(subtopicId);
-        saveUserProfile(session.userId, profile);
-      }
-    }
+    _post('/api/progress/subtopic-complete', { userId: sess.userId, subtopicKey: subtopicId });
+    _triggerSync();
   }
 
   function recordAssessmentResult(topicId, score, total) {
-    const session = getSession() || { assessmentResults: {} };
-    if (!session.assessmentResults) session.assessmentResults = {};
-    const percentage = Math.round((score / total) * 100);
-    session.assessmentResults[topicId] = { score, total, percentage };
-    localStorage.setItem(KEYS.CURRENT_SESSION, JSON.stringify(session));
+    const sess = getSession();
+    if (!sess) return;
+    const userId = sess.userId;
+    const pct  = Math.round((score / total) * 100);
+    const att  = _ensureObj(_c.assessmentAttempts, userId);
+    if (!att[topicId]) att[topicId] = [];
+    att[topicId].push({ score, total, percentage: pct, answers: [], attemptedAt: _now() });
 
-    // Real-time mentor sync: if passed (100% for standard demo flow), mark as completed in profile immediately
-    if (session.userId && percentage >= 60) {
-      markTopicComplete(session.userId, topicId);
-      // Trigger a storage event for other tabs
-      localStorage.setItem('gk_sync_ping', Date.now().toString());
+    _post('/api/progress/assessment', { userId, topicKey: topicId, score, total, answers: [] });
+
+    if (pct >= 60) {
+      markTopicComplete(userId, topicId);
+    } else {
+      _triggerSync();
     }
   }
 
   function saveFeedback(feedbackData) {
-    const session = getSession() || {};
-    session.feedback = feedbackData;
-    localStorage.setItem(KEYS.CURRENT_SESSION, JSON.stringify(session));
+    const userId = getCurrentUserId();
+    if (!userId) return;
+    const sess = _c.activeSessions[userId];
+    if (sess) sess.feedbackJson = JSON.stringify(feedbackData);
+    _post('/api/feedback/session', { userId, feedbackData });
   }
 
-  // ---------- Mentor Functions ----------
+  // ── Session log ───────────────────────────────────────────────────────────
+
+  function logCompletedSession() {
+    const sess = getSession();
+    if (!sess) return;
+    const entry = {
+      userId:    sess.userId,
+      startTime: sess.startTime,
+      endTime:   _now(),
+      mood:      sess.mood,
+      xpEarned:  sess.xpEarned,
+      feedback:  sess.feedback
+    };
+    _ensureArr(_c.sessionHistory, sess.userId).push(entry);
+    delete _c.activeSessions[sess.userId];
+
+    _post('/api/session/log', {
+      userId:    sess.userId,
+      startTime: sess.startTime,
+      mood:      sess.mood,
+      xpEarned:  sess.xpEarned,
+      feedback:  sess.feedback
+    });
+  }
+
+  function getSessionHistory(userId) {
+    return _c.sessionHistory[userId] || [];
+  }
+
+  // ── Mentor helpers ────────────────────────────────────────────────────────
 
   function getAllStudentProfiles() {
-    const profiles = JSON.parse(localStorage.getItem(KEYS.USER_PROFILES) || '{}');
     const all = {};
-    GK_USERS.forEach(u => {
-      const profile = {
-        ...u,
-        totalXP: 0,
-        completedTopics: [],
-        ...profiles[u.id]
-      };
-      // Merge in any demo overrides so mentor can see them
-      const overrides = JSON.parse(localStorage.getItem('gk_demo_overrides_' + u.id) || '{}');
-      profile.overrides = overrides;
-      all[u.id] = profile;
+    (GK_USERS || []).forEach(u => {
+      all[u.id] = getUserProfile(u.id) || { ...u, totalXP: 0, completedTopics: [] };
     });
     return all;
   }
 
   function awardBonusXP(userId, amount, reason) {
-    const profile = getUserProfile(userId) || { totalXP: 0 };
-    profile.totalXP = (profile.totalXP || 0) + amount;
-    if (!profile.mentorRewards) profile.mentorRewards = [];
-    profile.mentorRewards.push({ amount, reason, awardedAt: new Date().toISOString() });
-    saveUserProfile(userId, profile);
-    return profile.totalXP;
+    _ensureArr(_c.mentorRewards, userId).push({ amount, reason, awardedAt: _now() });
+    _post('/api/mentor/reward', { userId, amount, reason });
+    // Also update the XP cache locally
+    const xp = _c.xp[userId] || { totalXP: 0, level: 1, isPromoted: false, promotedAt: null };
+    xp.totalXP = (xp.totalXP || 0) + amount;
+    _c.xp[userId] = xp;
+    _triggerSync();
+    return xp.totalXP;
   }
 
   function promoteStudent(userId) {
-    const profile = getUserProfile(userId) || {};
-    profile.isPromoted = true;
-    profile.promotedAt = new Date().toISOString();
-    saveUserProfile(userId, profile);
+    const xp = _c.xp[userId] || { totalXP: 0, level: 1, isPromoted: false, promotedAt: null };
+    xp.isPromoted = true;
+    xp.promotedAt = _now();
+    _c.xp[userId] = xp;
+    _post('/api/mentor/promote', { userId });
+    _triggerSync();
   }
 
-  // ---------- Topic Lock / Unlock (Mentor Actions) ----------
+  // ── Topic locks ───────────────────────────────────────────────────────────
 
   function unlockTopicForStudent(userId, topicKey) {
-    const profile = getUserProfile(userId) || {};
-    if (!profile.unlockedTopics) profile.unlockedTopics = [];
-    if (!profile.unlockedTopics.includes(topicKey)) {
-      profile.unlockedTopics.push(topicKey);
-    }
-    // Remove from lockedTopics if it was explicitly locked before
-    if (profile.lockedTopics) {
-      profile.lockedTopics = profile.lockedTopics.filter(k => k !== topicKey);
-    }
-    saveUserProfile(userId, profile);
+    _ensureObj(_c.topicLocks, userId)[topicKey] = 0;
+    _post('/api/mentor/lock', { userId, topicKey, isLocked: false });
+    _triggerSync();
   }
 
   function lockTopicForStudent(userId, topicKey) {
-    const profile = getUserProfile(userId) || {};
-    if (!profile.lockedTopics) profile.lockedTopics = [];
-    if (!profile.lockedTopics.includes(topicKey)) {
-      profile.lockedTopics.push(topicKey);
-    }
-    // Remove from unlockedTopics if present
-    if (profile.unlockedTopics) {
-      profile.unlockedTopics = profile.unlockedTopics.filter(k => k !== topicKey);
-    }
-    saveUserProfile(userId, profile);
+    _ensureObj(_c.topicLocks, userId)[topicKey] = 1;
+    _post('/api/mentor/lock', { userId, topicKey, isLocked: true });
+    _triggerSync();
   }
 
   function getUnlockedTopics(userId) {
-    const profile = getUserProfile(userId) || {};
-    return profile.unlockedTopics || [];
+    const locks = _c.topicLocks[userId] || {};
+    return Object.keys(locks).filter(k => !locks[k]);
   }
 
   function getLockedTopics(userId) {
-    const profile = getUserProfile(userId) || {};
-    return profile.lockedTopics || [];
+    const locks = _c.topicLocks[userId] || {};
+    return Object.keys(locks).filter(k =>  locks[k]);
   }
 
-  // ---------- Mentor Notes / Suggestions ----------
+  // ── Mentor notes ──────────────────────────────────────────────────────────
 
   function addMentorNote(userId, noteData) {
-    const profile = getUserProfile(userId) || {};
-    if (!profile.mentorNotes) profile.mentorNotes = [];
-    profile.mentorNotes.push({
-      ...noteData,
-      id: 'note_' + Date.now(),
-      read: false,
-      createdAt: new Date().toISOString()
-    });
-    saveUserProfile(userId, profile);
+    const id  = 'note_' + Date.now();
+    const now = _now();
+    const note = { id, ...noteData, read: false, createdAt: now };
+    _ensureArr(_c.mentorNotes, userId).push(note);
+    _post('/api/mentor/note', { userId, noteData });
+    _triggerSync();
+    return id;
   }
 
   function getMentorNotes(userId) {
-    const profile = getUserProfile(userId) || {};
-    return profile.mentorNotes || [];
+    return _c.mentorNotes[userId] || [];
   }
 
   function markMentorNotesRead(userId) {
-    const profile = getUserProfile(userId) || {};
-    if (profile.mentorNotes) {
-      profile.mentorNotes = profile.mentorNotes.map(n => ({ ...n, read: true }));
-      saveUserProfile(userId, profile);
-    }
-  }
-
-  // ---------- Detailed Assessment Attempts (persisted to profile) ----------
-
-  function saveDetailedAssessmentResult(userId, topicKey, score, total, answers) {
-    const profile = getUserProfile(userId) || {};
-    if (!profile.assessmentAttempts) profile.assessmentAttempts = {};
-    if (!profile.assessmentAttempts[topicKey]) profile.assessmentAttempts[topicKey] = [];
-    profile.assessmentAttempts[topicKey].push({
-      score,
-      total,
-      percentage: Math.round((score / total) * 100),
-      answers: answers || [],
-      attemptedAt: new Date().toISOString()
-    });
-    // Keep last 5 attempts per topic
-    if (profile.assessmentAttempts[topicKey].length > 5) {
-      profile.assessmentAttempts[topicKey].shift();
-    }
-    saveUserProfile(userId, profile);
-  }
-
-  function getAssessmentAttempts(userId, topicKey) {
-    const profile = getUserProfile(userId) || {};
-    if (!profile.assessmentAttempts) return topicKey ? [] : {};
-    return topicKey
-      ? (profile.assessmentAttempts[topicKey] || [])
-      : profile.assessmentAttempts;
-  }
-
-  // ---------- Subtopic & Module Feedback (persisted to profile) ----------
-
-  function saveSubtopicFeedback(userId, subtopicKey, feedbackData) {
-    const profile = getUserProfile(userId) || {};
-    if (!profile.subtopicFeedback) profile.subtopicFeedback = {};
-    if (!profile.subtopicFeedback[subtopicKey]) profile.subtopicFeedback[subtopicKey] = [];
-    profile.subtopicFeedback[subtopicKey].push({
-      ...feedbackData,
-      savedAt: new Date().toISOString()
-    });
-    saveUserProfile(userId, profile);
-  }
-
-  function saveModuleFeedback(userId, topicKey, feedbackData) {
-    const profile = getUserProfile(userId) || {};
-    if (!profile.moduleFeedback) profile.moduleFeedback = {};
-    if (!profile.moduleFeedback[topicKey]) profile.moduleFeedback[topicKey] = [];
-    profile.moduleFeedback[topicKey].push({
-      ...feedbackData,
-      savedAt: new Date().toISOString()
-    });
-    saveUserProfile(userId, profile);
-  }
-
-  // ---------- Session Log (history) ----------
-
-  function logCompletedSession() {
-    const session = getSession();
-    if (!session) return;
-    session.endTime = new Date().toISOString();
-    const log = JSON.parse(localStorage.getItem(KEYS.SESSION_LOG) || '[]');
-    log.push(session);
-    // Keep last 50 sessions
-    if (log.length > 50) log.shift();
-    localStorage.setItem(KEYS.SESSION_LOG, JSON.stringify(log));
-  }
-
-  function getSessionHistory(userId) {
-    const log = JSON.parse(localStorage.getItem(KEYS.SESSION_LOG) || '[]');
-    return log.filter(s => s.userId === userId);
-  }
-
-  // ---------- Quick Check Results ----------
-
-  function saveQuickCheckResult(userId, result) {
-    const profile = getUserProfile(userId) || {};
-    if (!profile.quickCheckResults) profile.quickCheckResults = [];
-    profile.quickCheckResults.push({
-      ...result,
-      id: Date.now(),
-      submittedAt: new Date().toISOString()
-    });
-    saveUserProfile(userId, profile);
-  }
-
-  function getQuickCheckResults(userId) {
-    const profile = getUserProfile(userId) || {};
-    return profile.quickCheckResults || [];
-  }
-
-  // ---------- Mentor Review Requests ----------
-
-  function saveMentorReviewRequest(userId, data) {
-    const key = `gk_review_requests_${userId}`;
-    const requests = JSON.parse(localStorage.getItem(key) || '[]');
-    requests.push({
-      id: Date.now(),
-      userId,
-      ...data,
-      submittedAt: new Date().toISOString(),
-      read: false
-    });
-    localStorage.setItem(key, JSON.stringify(requests));
-  }
-
-  function getMentorReviewRequests(userId) {
-    const key = `gk_review_requests_${userId}`;
-    return JSON.parse(localStorage.getItem(key) || '[]');
-  }
-
-  function markReviewRequestRead(userId, requestId) {
-    const key = `gk_review_requests_${userId}`;
-    const requests = JSON.parse(localStorage.getItem(key) || '[]');
-    const req = requests.find(r => r.id === requestId);
-    if (req) {
-      req.read = true;
-      localStorage.setItem(key, JSON.stringify(requests));
-    }
-  }
-
-  function clearMentorReviewRequests(userId) {
-    const key = `gk_review_requests_${userId}`;
-    localStorage.removeItem(key);
-  }
-
-  function submitMentorEvaluation(userId, data) {
-    clearMentorReviewRequests(userId);
-    // You could also save the evaluation history here if needed
-  }
-
-  function resetTopics(userId, topicKeys) {
-    const profile = getUserProfile(userId) || {};
-    if (profile.assessmentAttempts) {
-      topicKeys.forEach(k => {
-        delete profile.assessmentAttempts[k];
-      });
-    }
-    if (profile.completedTopics) {
-      profile.completedTopics = profile.completedTopics.filter(t => !topicKeys.includes(t));
-    }
-    // Remove individual quick check results so assessments can be retaken
-    if (profile.quickCheckResults) {
-      profile.quickCheckResults = profile.quickCheckResults.filter(r => !topicKeys.includes(`${r.subjectId}-${r.topicId}`));
-    }
-    // Remove individual subtopic completions (e.g. topicKey = math-fractions, remove fractions-intro-fractions etc)
-    if (profile.completedSubtopics) {
-      profile.completedSubtopics = profile.completedSubtopics.filter(stKey => {
-        return !topicKeys.some(tk => {
-          const tId = tk.includes('-') ? tk.split('-').slice(1).join('-') : tk;
-          return stKey.startsWith(tId + '-');
-        });
-      });
-    }
-    // Also remove from current session if needed
-    const sessionKey = KEYS.CURRENT_SESSION;
-    let currentSession = null;
-    try {
-      currentSession = JSON.parse(localStorage.getItem(sessionKey));
-    } catch (e) { }
-
-    if (currentSession && currentSession.userId === userId) {
-      let changed = false;
-      if (currentSession.assessmentResults) {
-        topicKeys.forEach(k => {
-          if (currentSession.assessmentResults[k]) {
-            delete currentSession.assessmentResults[k];
-            changed = true;
-          }
-        });
-      }
-      if (currentSession.completedSubtopics) {
-        const initialLen = currentSession.completedSubtopics.length;
-        currentSession.completedSubtopics = currentSession.completedSubtopics.filter(stKey => {
-          return !topicKeys.some(tk => {
-            const tId = tk.includes('-') ? tk.split('-').slice(1).join('-') : tk;
-            return stKey.startsWith(tId + '-');
-          });
-        });
-        if (currentSession.completedSubtopics.length !== initialLen) changed = true;
-      }
-      if (changed) {
-        localStorage.setItem(sessionKey, JSON.stringify(currentSession));
-      }
-    }
-
-    // ALSO CLEAR DEMO OVERRIDES
-    const overrideKey = 'gk_demo_overrides_' + userId;
-    const overrides = JSON.parse(localStorage.getItem(overrideKey) || '{}');
-    let overridesChanged = false;
-    topicKeys.forEach(k => {
-      if (overrides[k]) {
-        delete overrides[k];
-        overridesChanged = true;
-      }
-    });
-    if (overridesChanged) {
-      localStorage.setItem(overrideKey, JSON.stringify(overrides));
-    }
-
-    saveUserProfile(userId, profile);
-  }
-
-  // ---------- Mentor Mood Log ----------
-
-  function saveMentorMoodLog(mentorId, moodData) {
-    const key = 'gk_mentor_mood_' + mentorId;
-    const logs = JSON.parse(localStorage.getItem(key) || '[]');
-    logs.push({ ...moodData, loggedAt: new Date().toISOString() });
-    if (logs.length > 100) logs.shift();
-    localStorage.setItem(key, JSON.stringify(logs));
-  }
-
-  function getMentorMoodLog(mentorId) {
-    const key = 'gk_mentor_mood_' + mentorId;
-    return JSON.parse(localStorage.getItem(key) || '[]');
-  }
-
-  // ---------- Holistic Quotient Scores (AQ, SQ, PQ, EQ → HQ) ----------
-
-  function saveHolisticScores(userId, data) {
-    const profile = getUserProfile(userId) || {};
-    profile.holisticScores = { ...data, savedAt: new Date().toISOString() };
-    saveUserProfile(userId, profile);
-  }
-
-  function getHolisticScores(userId) {
-    const profile = getUserProfile(userId) || {};
-    return profile.holisticScores || null;
+    (_c.mentorNotes[userId] || []).forEach(n => { n.read = true; });
+    _post('/api/mentor/notes-read', { userId });
   }
 
   function markSpecificMentorNoteRead(userId, noteId) {
-    const profile = getUserProfile(userId) || {};
-    if (profile.mentorNotes) {
-      profile.mentorNotes = profile.mentorNotes.map(n => n.id === noteId ? { ...n, read: true } : n);
-      saveUserProfile(userId, profile);
-    }
+    const note = (_c.mentorNotes[userId] || []).find(n => n.id === noteId);
+    if (note) note.read = true;
+    _post('/api/mentor/note-read', { userId, noteId });
   }
+
+  // ── Detailed assessment attempts ──────────────────────────────────────────
+
+  function saveDetailedAssessmentResult(userId, topicKey, score, total, answers) {
+    const pct = Math.round((score / total) * 100);
+    const att = _ensureObj(_c.assessmentAttempts, userId);
+    if (!att[topicKey]) att[topicKey] = [];
+    att[topicKey].push({ score, total, percentage: pct, answers: answers || [], attemptedAt: _now() });
+    // Keep last 5
+    if (att[topicKey].length > 5) att[topicKey] = att[topicKey].slice(-5);
+
+    _post('/api/progress/assessment', { userId, topicKey, score, total, answers: answers || [] });
+    _triggerSync();
+  }
+
+  function getAssessmentAttempts(userId, topicKey) {
+    const all = _c.assessmentAttempts[userId] || {};
+    if (topicKey) return all[topicKey] || [];
+    return all;
+  }
+
+  // ── Granular feedback ─────────────────────────────────────────────────────
+
+  function saveSubtopicFeedback(userId, subtopicKey, feedbackData) {
+    const fb = _ensureObj(_c.subtopicFeedback, userId);
+    if (!fb[subtopicKey]) fb[subtopicKey] = [];
+    fb[subtopicKey].push({ ...feedbackData, savedAt: _now() });
+    _post('/api/feedback/subtopic', { userId, subtopicKey, feedbackData });
+  }
+
+  function saveModuleFeedback(userId, topicKey, feedbackData) {
+    const fb = _ensureObj(_c.moduleFeedback, userId);
+    if (!fb[topicKey]) fb[topicKey] = [];
+    fb[topicKey].push({ ...feedbackData, savedAt: _now() });
+    _post('/api/feedback/module', { userId, topicKey, feedbackData });
+  }
+
+  // ── Quick-check results ───────────────────────────────────────────────────
+
+  function saveQuickCheckResult(userId, result) {
+    const id  = Date.now();
+    const now = _now();
+    const entry = { ...result, id, submittedAt: now };
+    _ensureArr(_c.quickCheckResults, userId).push(entry);
+    _post('/api/quickcheck', { userId, result });
+    _triggerSync();
+  }
+
+  function getQuickCheckResults(userId) {
+    return _c.quickCheckResults[userId] || [];
+  }
+
+  // ── Mentor review requests ────────────────────────────────────────────────
+
+  function saveMentorReviewRequest(userId, data) {
+    const id  = Date.now();
+    const now = _now();
+    const entry = { ...data, id, userId, read: false, submittedAt: now };
+    _ensureArr(_c.reviewRequests, userId).push(entry);
+    _post('/api/mentor/review-request', { userId, data });
+    _triggerSync();
+  }
+
+  function getMentorReviewRequests(userId) {
+    return _c.reviewRequests[userId] || [];
+  }
+
+  function markReviewRequestRead(userId, requestId) {
+    const req = (_c.reviewRequests[userId] || []).find(r => r.id === requestId);
+    if (req) req.read = true;
+    _post('/api/mentor/review-read', { userId, requestId });
+  }
+
+  function clearMentorReviewRequests(userId) {
+    _c.reviewRequests[userId] = [];
+    _post('/api/mentor/review-clear', { userId });
+  }
+
+  function submitMentorEvaluation(userId) {
+    clearMentorReviewRequests(userId);
+  }
+
+  // ── Topic reset ───────────────────────────────────────────────────────────
+
+  function resetTopics(userId, topicKeys) {
+    topicKeys.forEach(tk => {
+      const topicId = tk.includes('-') ? tk.split('-').slice(1).join('-') : tk;
+
+      // assessmentAttempts
+      const att = _c.assessmentAttempts[userId] || {};
+      delete att[tk];
+
+      // topicCompletions
+      const tc = _c.topicCompletions[userId] || [];
+      _c.topicCompletions[userId] = tc.filter(t => t !== tk);
+
+      // demoOverrides
+      const ov = _c.demoOverrides[userId] || {};
+      delete ov[tk];
+
+      // subtopicCompletions
+      const sc = _c.subtopicCompletions[userId] || [];
+      _c.subtopicCompletions[userId] = sc.filter(e => {
+        const key = typeof e === 'string' ? e : e.key;
+        return !key.startsWith(topicId + '-');
+      });
+
+      // subtopicScores
+      const ss = _c.subtopicScores[userId] || {};
+      Object.keys(ss).forEach(k => { if (k.startsWith(topicId + '-')) delete ss[k]; });
+
+      // quickCheckResults
+      const qc = _c.quickCheckResults[userId] || [];
+      _c.quickCheckResults[userId] = qc.filter(r => r.topicId !== topicId);
+    });
+    _post('/api/progress/reset-topics', { userId, topicKeys });
+    _triggerSync();
+  }
+
+  // ── Full score reset ──────────────────────────────────────────────────────
+
+  function resetAllScores(userId) {
+    _c.subtopicScores[userId]      = {};
+    _c.subtopicCompletions[userId] = [];
+    _c.assessmentAttempts[userId]  = {};
+    _c.topicCompletions[userId]    = [];
+    _c.quickCheckResults[userId]   = [];
+    _c.demoOverrides[userId]       = {};
+    const sess = _c.activeSessions[userId];
+    if (sess) sess.xpEarned = 0;
+    _post('/api/progress/reset-all', { userId });
+    _triggerSync();
+  }
+
+  // ── Mentor mood log ───────────────────────────────────────────────────────
+
+  function saveMentorMoodLog(mentorId, moodData) {
+    const log = _ensureArr(_c.mentorMoodLog, mentorId);
+    log.push({ ...moodData, loggedAt: _now() });
+    // Keep last 100
+    if (log.length > 100) _c.mentorMoodLog[mentorId] = log.slice(-100);
+    _post('/api/mentor/mood', { mentorId, moodData });
+  }
+
+  function getMentorMoodLog(mentorId) {
+    return _c.mentorMoodLog[mentorId] || [];
+  }
+
+  // ── Subtopic scores ───────────────────────────────────────────────────────
+
+  function saveSubtopicScore(userId, subtopicKey, score, total) {
+    if (!userId || score === undefined || !total) return;
+    const pct = Math.round((score / total) * 100);
+    const sc  = _ensureObj(_c.subtopicScores, userId);
+    if (!sc[subtopicKey] || score >= sc[subtopicKey].score) {
+      sc[subtopicKey] = { score, total, percentage: pct, completedAt: _now() };
+    }
+    // Also ensure subtopic is in completions
+    const arr = _ensureArr(_c.subtopicCompletions, userId);
+    const existing = arr.map(e => (typeof e === 'string' ? e : e.key));
+    if (!existing.includes(subtopicKey)) {
+      arr.push({ key: subtopicKey, completedAt: _now() });
+    }
+    _post('/api/progress/subtopic-score', { userId, subtopicKey, score, total });
+    _triggerSync();
+  }
+
+  function getSubtopicScores(userId) {
+    return _c.subtopicScores[userId] || {};
+  }
+
+  // ── Holistic Quotient ─────────────────────────────────────────────────────
+
+  function saveHolisticScores(userId, data) {
+    _c.holisticScores[userId] = { ...data, savedAt: _now() };
+    _post('/api/mentor/holistic', { userId, data });
+    _triggerSync();
+  }
+
+  function getHolisticScores(userId) {
+    return _c.holisticScores[userId] || null;
+  }
+
+  // ── Personalized Learning Paths ───────────────────────────────────────────
+
+  /**
+   * Returns the active learning path for a student from the local cache.
+   * Shape: { pathId, pathName, pathGrade, assignedAt, isActive }
+   * or null if no path is assigned.
+   */
+  function getStudentLearningPath(userId) {
+    const assignments = _c.studentLearningPaths[userId] || [];
+    return assignments.find(a => a.isActive) || null;
+  }
+
+  /**
+   * Returns the full path object (with ordered topics[]) for a student
+   * by joining their active assignment against the learningPaths cache.
+   * Shape: { pathId, pathName, grade, topics: [{topicId, order, required}] }
+   */
+  function getStudentLearningPathDetails(userId) {
+    const assignment = getStudentLearningPath(userId);
+    if (!assignment) return null;
+    const path = _c.learningPaths[assignment.pathId];
+    if (!path) return null;
+    return {
+      pathId:   path.id,
+      pathName: path.name,
+      grade:    path.grade,
+      topics:   path.topics || []
+    };
+  }
+
+  /**
+   * Returns all learning paths (active + inactive) from cache.
+   */
+  function getAllLearningPaths() {
+    return Object.values(_c.learningPaths);
+  }
+
+  /**
+   * Returns only the topic IDs in the student's active path, in order.
+   * Returns null if no path assigned (meaning show full curriculum).
+   */
+  function getStudentTopicIds(userId) {
+    const details = getStudentLearningPathDetails(userId);
+    if (!details) return null;
+    return details.topics
+      .sort((a, b) => a.order - b.order)
+      .map(t => t.topicId);
+  }
+
+  // ── Public API ────────────────────────────────────────────────────────────
+  // Identical surface to the previous sql.js version.
 
   return {
     saveCurrentUser, getCurrentUserId, clearCurrentUser,
-    getUserProfile, saveUserProfile, getTotalXP, addXPToUser, markTopicComplete,
+    getUserProfile, saveUserProfile,
+    getTotalXP, addXPToUser, markTopicComplete,
     startSession, getSession, updateSession, addSessionXP,
     recordSubtopicComplete, recordAssessmentResult, saveFeedback,
     logCompletedSession, getSessionHistory,
     getAllStudentProfiles, awardBonusXP, promoteStudent,
-    // Topic lock/unlock
-    unlockTopicForStudent, lockTopicForStudent, getUnlockedTopics, getLockedTopics,
-    // Mentor notes
-    addMentorNote, getMentorNotes, markMentorNotesRead, markSpecificMentorNoteRead,
-    // Detailed assessment history
+    unlockTopicForStudent, lockTopicForStudent,
+    getUnlockedTopics, getLockedTopics,
+    addMentorNote, getMentorNotes,
+    markMentorNotesRead, markSpecificMentorNoteRead,
     saveDetailedAssessmentResult, getAssessmentAttempts,
-    // Granular feedback
     saveSubtopicFeedback, saveModuleFeedback,
-    // Quick check results (mentor-visible, student-blind)
     saveQuickCheckResult, getQuickCheckResults,
-    // Mentor review requests & evaluations
-    saveMentorReviewRequest, getMentorReviewRequests, markReviewRequestRead, clearMentorReviewRequests,
-    submitMentorEvaluation, resetTopics,
-    // Holistic Quotient
+    saveMentorReviewRequest, getMentorReviewRequests,
+    markReviewRequestRead, clearMentorReviewRequests,
+    submitMentorEvaluation, resetTopics, resetAllScores,
+    saveSubtopicScore, getSubtopicScores,
     saveHolisticScores, getHolisticScores,
-    // Mentor Mood Log
-    saveMentorMoodLog, getMentorMoodLog
+    saveMentorMoodLog, getMentorMoodLog,
+    getStudentLearningPath, getStudentLearningPathDetails,
+    getAllLearningPaths, getStudentTopicIds
   };
 })();

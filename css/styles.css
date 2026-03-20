@@ -276,6 +276,83 @@ a {
   color: var(--text-light);
 }
 
+/* Credentials reference panel on login screen */
+.login-creds-panel {
+  margin-top: 1.25rem;
+  border: 1px solid #EDE0C8;
+  border-radius: 12px;
+  overflow: hidden;
+  background: #FDFAF4;
+}
+
+.login-creds-title {
+  font-size: .72rem;
+  font-weight: 700;
+  color: #8B5E2E;
+  text-align: center;
+  padding: .45rem .75rem;
+  background: #F5EDD8;
+  border-bottom: 1px solid #EDE0C8;
+  letter-spacing: .02em;
+}
+
+.login-creds-grid {
+  display: flex;
+  flex-direction: column;
+}
+
+.login-cred-row {
+  display: flex;
+  align-items: center;
+  gap: .65rem;
+  padding: .55rem .85rem;
+  cursor: pointer;
+  border-bottom: 1px solid #F0E8D8;
+  transition: background .15s;
+}
+
+.login-cred-row:last-child {
+  border-bottom: none;
+}
+
+.login-cred-row:hover {
+  background: #F0E4C8;
+}
+
+.login-cred-avatar {
+  font-size: 1.3rem;
+  flex-shrink: 0;
+  width: 2rem;
+  text-align: center;
+}
+
+.login-cred-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.login-cred-name {
+  font-size: .82rem;
+  font-weight: 700;
+  color: #4A2C0A;
+}
+
+.login-cred-user {
+  font-size: .72rem;
+  color: #7B5230;
+  font-family: monospace;
+  letter-spacing: .02em;
+}
+
+.login-cred-arrow {
+  font-size: .9rem;
+  color: #C4882A;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
 /* ==========================================
    SCREEN 2: MOOD CHECK
    ========================================== */
@@ -5321,6 +5398,18 @@ a {
   flex-shrink: 0;
 }
 
+.cl-score-chip {
+  font-size: .68rem;
+  font-weight: 700;
+  color: #1A7A3E;
+  background: #E8F8EE;
+  border: 1px solid #A8D8B9;
+  border-radius: 20px;
+  padding: .1rem .45rem;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
 /* Right metadata (comments · date · chevron) */
 .cl-row-meta {
   display: flex;
@@ -5607,6 +5696,18 @@ a {
   height: 100%;
   object-fit: cover;
   display: block;
+}
+
+.cl-resource-thumb-icon {
+  width: 54px;
+  height: 54px;
+  border-radius: 8px;
+  background: #F0EBF8;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.6rem;
+  flex-shrink: 0;
 }
 
 /* ---- Quick-Check: submitted confirmation ---- */

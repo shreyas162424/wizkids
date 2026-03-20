@@ -11,7 +11,7 @@ const GKAuth = (() => {
       u => u.username.toLowerCase() === username.toLowerCase() && u.password === password
     );
     if (!user) {
-      return { success: false, error: "Invalid username or password. Try: diya / gurukul123" };
+      return { success: false, error: "Incorrect username or password. Tap your name below to auto-fill your credentials." };
     }
     GKStore.saveCurrentUser(user.id);
     // Merge persisted profile data (XP, completedTopics) with base user

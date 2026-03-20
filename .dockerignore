@@ -1,0 +1,26 @@
+# Dependencies — installed fresh inside the image
+node_modules/
+
+# SQLite database files — persisted via Docker volume, not baked in
+*.sqlite
+*.sqlite-wal
+*.sqlite-shm
+db/
+
+# Dev/build artifacts
+npm-debug.log*
+.npm/
+.env
+.env.*
+!env.local
+
+# Version control
+.git/
+.gitignore
+
+# Editor metadata
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store

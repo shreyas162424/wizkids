@@ -1,0 +1,42 @@
+version: '3.9'
+
+# ============================================================
+# Gurukul WizKids — docker-compose
+#
+# Usage:
+#   docker compose up --build        # first run (builds image)
+#   docker compose up -d             # start in background
+#   docker compose down              # stop
+#   docker compose logs -f gurukul   # tail logs
+#
+# Access:
+#   Web app  → http://localhost:3001/student.html
+#   Mentor   → http://localhost:3001/mentor.html
+#   API root → http://localhost:3001/api/init
+# ============================================================
+
+services:
+  gurukul:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: gurukul-app
+    ports:
+      - "3001:3001"        # HOST:CONTAINER — change left side to use a different host port
+    volumes:
+      - gurukul-db:/app/db # SQLite file persists across restarts
+    environment:
+      NODE_ENV: production
+      PORT: 3001
+      DB_DIR: /app/db
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3001/api/init"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+volumes:
+  gurukul-db:
+    driver: local

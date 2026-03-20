@@ -2538,7 +2538,7 @@
   cursor: pointer;
 }
 
-.mas-btn-primary, .mas-btn-secondary, .mas-btn-gold {
+.mas-btn-primary, .mas-btn-secondary, .mas-btn-gold, .mas-btn-danger {
   padding: 10px var(--space-lg);
   border-radius: var(--radius-md);
   border: none;
@@ -2564,6 +2564,20 @@
   background: var(--bg-alt);
   color: var(--m-primary);
   border: 1px solid var(--m-border);
+}
+
+.mas-btn-danger {
+  background: #fef2f2;
+  color: #b91c1c;
+  border: 1px solid #fca5a5;
+  width: 100%;
+}
+
+.mas-btn-danger:hover {
+  background: #b91c1c;
+  color: white;
+  border-color: #b91c1c;
+  transform: translateY(-1px);
 }
 
 .mas-btn-secondary:hover {

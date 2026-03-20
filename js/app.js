@@ -101,14 +101,11 @@ const GKApp = (() => {
 
     const m = (state.modules && state.modules[state.activeModuleIdx]) ? state.modules[state.activeModuleIdx] : null;
 
-    // Automatic initiator speech
-    // Rule: automatic navigation TTS is said only once and ONLY in the timetable (modules) page
-    if (screen === 'modules' && !_spokenScreens.has('modules')) {
-      const msg = krishnaInitiatorFor('modules');
-      GKVoice.speak(msg);
-      _spokenScreens.add('modules');
-    }
-    // No automatic TTS on other pages to avoid repetition as requested by user
+    // Speak Krishna's message — use plain text (not htmlContent) so buttons aren't read aloud
+    const _voiceMsg = state.activeNotification
+      ? (state.activeNotification.text || '')
+      : krishnaInitiatorFor(screen);
+    GKVoice.speak(_voiceMsg);
 
     // Set idle timer for 5 mins in learning/subtopics to remind about assessment
     if (screen === 'learning' || screen === 'subtopics') {
@@ -118,6 +115,9 @@ const GKApp = (() => {
         }
       }, 5 * 60 * 1000); // 5 minutes
     }
+
+    // Push live state to server so mentor mirror reflects this navigation
+    _pushLiveState();
 
     // Start topic timer when entering 'learning' screen
     if (screen === 'learning') {
@@ -135,6 +135,28 @@ const GKApp = (() => {
         state.seenConcepts.add(conceptKey);
       }
     }
+  }
+
+  // ── Live state broadcaster ────────────────────────────────────────────────
+  // Fire-and-forget: pushes current UI state to server so mentor mirror can
+  // apply it directly (no iframe reload, no black flash).
+  function _pushLiveState() {
+    if (state.isMirror || !state.user) return;
+    console.log('[GKLive] push →', state.currentScreen, 'module:', state.activeModuleIdx, 'subtopic:', state.activeSubtopicIdx, 'concept:', state.conceptIdx);
+    GKDatabase._post('/api/live-state', {
+      userId: state.user.id,
+      liveState: {
+        screen:           state.currentScreen,
+        activeModuleIdx:  state.activeModuleIdx,
+        activeTopicId:    state.activeTopicId,
+        activeSubjectId:  state.activeSubjectId,
+        activeSubtopicIdx: state.activeSubtopicIdx,
+        conceptIdx:       state.conceptIdx,
+        phase:            state.phase,
+        assessmentTopicId: state.assessmentTopicId,
+        moodPhase:        state.moodPhase
+      }
+    });
   }
 
   // ---- Root Render ----
@@ -248,7 +270,7 @@ const GKApp = (() => {
           <div class="agent-speech-bubble">
             ${msg}
             <button class="krishna-voice-toggle" onclick="GKVoice.toggle(this)" title="Toggle Krishna voice"
-              style="background:none;border:none;cursor:pointer;font-size:1rem;opacity:0.65;padding:0.15rem 0.3rem;float:right;line-height:1;" aria-label="Toggle voice">🔊</button>
+              style="background:none;border:none;cursor:pointer;font-size:1rem;opacity:0.65;padding:0.15rem 0.3rem;float:right;line-height:1;" aria-label="Toggle voice">${GKVoice.isEnabled() ? '🔊' : '🔇'}</button>
           </div>
 
           <div class="agent-inline-chat" style="margin-top: 15px;">
@@ -279,17 +301,37 @@ const GKApp = (() => {
               <form id="login-form" class="login-form">
                 <div class="form-group">
                   <label for="username">Username</label>
-                  <input type="text" id="username" placeholder="Enter your name" autocomplete="off" value="diya" />
+                  <input type="text" id="username" placeholder="Enter your username" autocomplete="off" />
                 </div>
                 <div class="form-group">
                   <label for="password">Password</label>
-                  <input type="password" id="password" placeholder="Enter password" value="gurukul123" />
+                  <input type="password" id="password" placeholder="Enter your password" />
                 </div>
                 <div id="login-error" class="error-msg hidden"></div>
                 <button type="submit" class="btn btn-primary btn-full">Enter Gurukul ✨</button>
               </form>
-              <div style="text-align:center; padding: 1rem 0; color: #bbb;">
-                <p class="login-hint">Demo: diya / gurukul123</p>
+
+              <!-- Student credentials reference — tap a row to auto-fill -->
+              <div class="login-creds-panel">
+                <div class="login-creds-title">👆 Tap your name to fill in credentials</div>
+                <div class="login-creds-grid">
+                  ${GK_USERS.map(u => `
+                    <div class="login-cred-row" onclick="
+                      document.getElementById('username').value='${u.username}';
+                      document.getElementById('password').value='${u.password}';
+                      document.getElementById('login-error').classList.add('hidden');
+                    ">
+                      <span class="login-cred-avatar">${u.avatar}</span>
+                      <div class="login-cred-info">
+                        <span class="login-cred-name">${u.displayName}</span>
+                        <span class="login-cred-user">${u.username} &nbsp;/&nbsp; ${u.password}</span>
+                      </div>
+                      <span class="login-cred-arrow">→</span>
+                    </div>`).join('')}
+                </div>
+              </div>
+
+              <div style="text-align:center; padding: 0.5rem 0;">
                 <p class="login-hint"><a href="start.html" class="back-link" style="color:#C4882A; text-decoration:none; font-weight:600;">← Back to Home</a></p>
               </div>
             </div>
@@ -693,14 +735,14 @@ const GKApp = (() => {
     { type: 'module', subjectId: 'wellness', topicId: 'meditation', label: 'Meditation', icon: '🌿', mins: 50, start: '11:10 AM' },
     { type: 'fixed', label: 'Lunch', icon: '🍱', mins: 60, start: '12:00 PM', bg: '#F0E8D0', fg: '#5C4020', locked: true },
     { type: 'module', subjectId: 'social', label: 'Social Studies', icon: '🌍', mins: 50, start: '1:00 PM' },
-    { type: 'module', subjectId: 'social-science', label: 'Social Science', icon: '🏛️', mins: 50, start: '1:50 PM' },
+    { type: 'module', subjectId: 'science', topicId: 'methods-of-separation', label: 'Science', icon: '🔬', mins: 50, start: '1:50 PM', pinned: true },
     { type: 'module', subjectId: 'kannada', label: 'Kannada', icon: '📖', mins: 50, start: '2:40 PM' },
   ];
 
   function renderTimetable(visibleModules, assessResults, allDone) {
     // ── Initialise flex order: read from sessionStorage or derive from DAILY_SCHEDULE ──
     if (!state.ttFlexOrder) {
-      const saved = sessionStorage.getItem('gk_tt_flex_order_v7_' + state.user.id);
+      const saved = sessionStorage.getItem('gk_tt_flex_order_v9_' + state.user.id);
       state.ttFlexOrder = saved
         ? JSON.parse(saved)
         : DAILY_SCHEDULE
@@ -791,7 +833,7 @@ const GKApp = (() => {
         }
 
         if (changedFlex) {
-          sessionStorage.setItem('gk_tt_flex_order_v7_' + state.user.id, JSON.stringify(state.ttFlexOrder));
+          sessionStorage.setItem('gk_tt_flex_order_v9_' + state.user.id, JSON.stringify(state.ttFlexOrder));
         }
         if (changedLocked) {
           sessionStorage.setItem('gk_tt_locked_subs_v7_' + state.user.id, JSON.stringify(state.ttLockedSubs));
@@ -802,7 +844,9 @@ const GKApp = (() => {
     // Fast lookup: subjectId + topicId → module object
     function moduleFor(subjectId, topicId) {
       if (topicId) {
-        return visibleModules.find(m => m.subjectId === subjectId && m.topicId === topicId) || null;
+        const found = visibleModules.find(m => m.subjectId === subjectId && m.topicId === topicId) || null;
+        if (!found) console.warn('[GK] moduleFor: NOT FOUND', subjectId, topicId, 'visibleModules:', visibleModules.map(m => m.subjectId + '/' + m.topicId));
+        return found;
       }
 
       const subjectModules = visibleModules.filter(m => m.subjectId === subjectId);
@@ -852,6 +896,27 @@ const GKApp = (() => {
             ? `<span class="tt-subject-label">${m.subjectName}</span>
                  <span class="tt-topic-label">${m.topicName}</span>`
             : `<span class="tt-label">${slot.label}</span>`}
+            ${m ? (isDone ? '<span class="tt-go">🔄 Review</span>' : '<span class="tt-go">▶ Go</span>') : ''}
+          </div>`;
+      }
+
+      // ── Pinned module slot — fixed topic, not draggable, no lock icon ───
+      if (slot.pinned) {
+        const m = moduleFor(slot.subjectId, slot.topicId);
+        const isDone = m ? !!assessResults[`${m.subjectId}-${m.topicId}`] : false;
+        const cls = m ? (isDone ? 'tt-done' : 'tt-active') : 'tt-ghost';
+        const color = m ? `--tt-bg:${m.subjectColor}` : '';
+        fp++; // still consume a flex slot position so indices stay aligned
+        return `
+          <div class="tt-block ${cls}"
+               style="flex:${slot.mins};${color}"
+               ${m ? `onclick="GKApp.startModule(${m._origIdx})"` : ''}>
+            ${isDone ? '<span class="tt-check">✓</span>' : ''}
+            <span class="tt-icon">${m ? `${m.subjectIcon} ${m.topicIcon}` : slot.icon}</span>
+            ${m
+              ? `<span class="tt-subject-label">${m.subjectName}</span>
+                 <span class="tt-topic-label">${m.topicName}</span>`
+              : `<span class="tt-label">${slot.label}</span>`}
             ${m ? (isDone ? '<span class="tt-go">🔄 Review</span>' : '<span class="tt-go">▶ Go</span>') : ''}
           </div>`;
       }
@@ -1097,7 +1162,13 @@ const GKApp = (() => {
     if (!topicData) return '<div class="screen"><p>Topic not found.</p></div>';
     const { topic } = topicData;
     const session = GKStore.getSession() || {};
-    const completed = session.completedSubtopics || [];
+    const sessionCompleted = session.completedSubtopics || [];
+    // Merge with profile-persisted completed list so data survives page refresh
+    const profile = state.user ? GKStore.getUserProfile(state.user.id) : null;
+    const profileCompleted = profile ? (profile.completedSubtopics || []) : [];
+    const subtopicScores = profile ? (profile.subtopicScores || {}) : {};
+    const completedSet = new Set([...sessionCompleted, ...profileCompleted]);
+    const completed = [...completedSet];
 
     const allSubtopics = topic.subtopics;
     const mandatorySubtopics = allSubtopics.filter(st => st.mandatory !== false);
@@ -1131,6 +1202,8 @@ const GKApp = (() => {
           const metaText = r.duration
             ? `${r.platform || 'Video'} video \u2022 ${r.duration}`
             : (r.platform || r.type || 'Resource');
+          const platformIcons = { 'NotebookLM': '🎙️', 'YouTube': '▶️', 'PDF': '📄', 'Slides': '📊', 'Drive': '📁' };
+          const platformIcon = !thumbUrl ? (platformIcons[r.platform] || '🔗') : '';
           return `
             <a class="cl-resource-card cl-resource-link" href="${r.url}" target="_blank"
                rel="noopener noreferrer" onclick="event.stopPropagation()">
@@ -1138,9 +1211,9 @@ const GKApp = (() => {
                 <div class="cl-resource-name cl-resource-title">${r.title}</div>
                 <div class="cl-resource-meta">${metaText}</div>
               </div>
-              ${thumbUrl ? `<div class="cl-resource-thumb-img">
-                <img src="${thumbUrl}" alt="${r.title}" loading="lazy" />
-              </div>` : ''}
+              ${thumbUrl
+                ? `<div class="cl-resource-thumb-img"><img src="${thumbUrl}" alt="${r.title}" loading="lazy" /></div>`
+                : `<div class="cl-resource-thumb-icon">${platformIcon}</div>`}
             </a>`;
         }).join('');
       }
@@ -1175,13 +1248,20 @@ const GKApp = (() => {
 
     // Render a single classroom-style row (collapsed + expanded body)
     function subtopicRow(st, globalIdx, seqIdx) {
-      const isDone = completed.includes(m.topicId + '-' + st.id);
+      const stKey = m.topicId + '-' + st.id;
+      const isDone = completed.includes(stKey);
+      const scoreData = subtopicScores[stKey];
       const isExpanded = state.expandedSubtopicIdx === globalIdx;
       const prefix = subtopicCodePrefix(st, seqIdx);
-      const commentCount = st.assessment ? st.assessment.length : 0;
+      const questionCount = st.game ? st.game.items.length : (st.assessment ? st.assessment.length : 0);
       const iconChar = st.subtopicType === 'challenge' ? '⚡'
         : st.subtopicType === 'advanced' ? '📝'
           : '📋';
+
+      // Score chip shown in the row header when completed
+      const scoreChip = isDone && scoreData
+        ? `<span class="cl-score-chip">${scoreData.score}/${scoreData.total} ✓</span>`
+        : '';
 
       return `
         <div class="cl-item ${isDone ? 'cl-done' : ''} ${isExpanded ? 'cl-expanded' : ''}"
@@ -1194,7 +1274,8 @@ const GKApp = (() => {
               ${isDone ? '<span class="cl-done-check">✅</span>' : ''}
             </div>
             <div class="cl-row-meta">
-              <span class="cl-comment-count">💬 ${commentCount}</span>
+              ${scoreChip}
+              <span class="cl-comment-count">💬 ${questionCount}</span>
               <span class="cl-due-date">${isDone ? 'Completed' : 'No due date'}</span>
               <span class="cl-chevron">${isExpanded ? '▲' : '▾'}</span>
             </div>
@@ -1203,12 +1284,16 @@ const GKApp = (() => {
             <div class="cl-body">
               <div class="cl-body-meta">
                 <span class="cl-posted-date">Posted ${today} · ${st.xp} XP</span>
-                <span class="cl-status-badge ${isDone ? 'done' : 'assigned'}">${isDone ? '✅ Completed' : 'Assigned'}</span>
+                <span class="cl-status-badge ${isDone ? 'done' : 'assigned'}">
+                  ${isDone
+                    ? (scoreData ? `✅ ${scoreData.score}/${scoreData.total} · ${scoreData.percentage}%` : '✅ Completed')
+                    : 'Assigned'}
+                </span>
               </div>
               ${st.description ? `<div class="eo-panel"><div class="eo-panel-label">🔍 Exploring options</div><div class="cl-description">${st.description}</div></div>` : ''}
               <div class="cl-resources">${resourceCards(st)}</div>
               <div class="cl-body-footer">
-                <span class="cl-footer-comments">💬 ${commentCount} questions in challenge</span>
+                <span class="cl-footer-comments">💬 ${questionCount} questions in challenge</span>
                 <div class="cl-view-link tooltip-wrap" onclick="event.stopPropagation();">
                     View instructions ›
                     <div class="tooltip-content">${st.description || 'Start the module below to follow the embedded interactive instructions and earn XP!'}</div>
@@ -1281,7 +1366,7 @@ const GKApp = (() => {
             <!-- ── Progress bar ── -->
             <div class="sub-progress-wrap">
               <div class="sub-progress-header">
-                <span class="sub-progress-label">${m.subjectIcon} ${topic.name}</span>
+                <span class="sub-progress-label">${m.subjectIcon} ${topic.pageTitle || topic.name}</span>
                 <span class="sub-progress-count">Step ${Math.min(currentStepIdx + 1, mandatorySubtopics.length)} of ${mandatorySubtopics.length} · ${doneSubCount} done</span>
               </div>
               <div class="sub-progress-track">
@@ -1302,7 +1387,7 @@ const GKApp = (() => {
                   <div class="cl-header-body">
                     <span class="cl-header-icon">${m.subjectIcon}</span>
                     <div class="cl-header-text">
-                      <h2 class="cl-course-code">${topic.name}</h2>
+                      <h2 class="cl-course-code">${topic.pageTitle || topic.name}</h2>
                       <p class="cl-course-meta">${mandatorySubtopics.length} lesson${mandatorySubtopics.length !== 1 ? 's' : ''}${optionalSubtopics.length > 0 ? ' · ' + optionalSubtopics.length + ' optional' : ''} · ${m.topicXP} XP available</p>
                     </div>
                     <span class="cl-expand-icon">▲</span>
@@ -1860,6 +1945,9 @@ const GKApp = (() => {
           <div class="agent-pane-spacer"></div>
           <div class="screen-content-col">
             <div class="content-wrap">
+              <div class="learning-topbar" style="margin-bottom:0.5rem;">
+                <button class="btn btn-ghost btn-sm" onclick="GKApp.backToSubtopics()">← Subtopics</button>
+              </div>
               <div class="challenge-header">
                 <h2>⚡ Challenge Zone</h2>
                 <p>Test your understanding — you've got this!</p>
@@ -1905,6 +1993,17 @@ const GKApp = (() => {
       state.user.id, topicKey,
       results.score, results.total, results.answers
     );
+    // For subtopic-level pure assessment: also persist per-subtopic score so it
+    // shows on the subtopics list after a page refresh
+    if (!isFinal && state.user && state.activeSubtopicIdx !== undefined) {
+      const st = _getCurrentSubtopic();
+      if (st) {
+        const stKey = m.topicId + '-' + st.id;
+        GKStore.saveSubtopicScore(state.user.id, stKey, results.score, results.total);
+        // Also mark subtopic as complete in the session for immediate UI update
+        GKStore.recordSubtopicComplete(stKey);
+      }
+    }
 
     const passed = results.percentage >= 60;
 
@@ -2187,9 +2286,6 @@ const GKApp = (() => {
             <div style="text-align:left;">
               <div style="font-size:0.9rem; font-weight:600; color:#2D1B0E;">${state.user.displayName}</div>
               <div style="display:flex; align-items:center; gap:0.5rem; margin-top:4px;">
-                <button onclick="GKApp.toggleMute(this)" class="btn-mute-toggle" title="Toggle Voice Audio">
-                  ${GKVoice.isEnabled() ? '🔊' : '🔇'}
-                </button>
                 ${logoutHtml}
               </div>
             </div>
@@ -2378,15 +2474,19 @@ const GKApp = (() => {
     // Update Krishna bubble with game-specific message
     const krishnaWrap = document.getElementById('mood-krishna-wrap');
     if (krishnaWrap) {
+      const gameMsg = _gameKrishnaMsg(battery, vibe);
       krishnaWrap.innerHTML = `
         <div class="krishna-initiator-wrap" id="krishna-init">
           <div class="krishna-img-box">
             <img src="img/krishna-guide.png" alt="Krishna" onerror="this.src='img/krishna-default.png'" />
           </div>
           <div class="krishna-speech-bubble">
-            ${_gameKrishnaMsg(battery, vibe)}
+            ${gameMsg}
+            <button class="krishna-voice-toggle" onclick="GKVoice.toggle(this)" title="Toggle Krishna voice"
+              style="background:none;border:none;cursor:pointer;font-size:1rem;opacity:0.65;padding:0.15rem 0.3rem;float:right;line-height:1;" aria-label="Toggle voice">${GKVoice.isEnabled() ? '🔊' : '🔇'}</button>
           </div>
         </div>`;
+      GKVoice.speak(gameMsg);
     }
 
     // Render game inline — "Let's Go!" inside the game navigates forward
@@ -2443,7 +2543,7 @@ const GKApp = (() => {
     // 2. Map this sequence onto the flexible slots (ttFlexOrder)
     // Ensure ttFlexOrder is initialized if it's null (happens on first run before render)
     if (!state.ttFlexOrder) {
-      const saved = sessionStorage.getItem('gk_tt_flex_order_v7_' + state.user.id);
+      const saved = sessionStorage.getItem('gk_tt_flex_order_v9_' + state.user.id);
       state.ttFlexOrder = saved
         ? JSON.parse(saved)
         : DAILY_SCHEDULE
@@ -2451,16 +2551,30 @@ const GKApp = (() => {
           .map(s => ({ subjectId: s.subjectId, topicId: s.topicId || null }));
     }
 
+    // Slots in DAILY_SCHEDULE that carry an explicit topicId are "pinned" —
+    // they must always show that specific topic regardless of mood reordering.
+    const flexSlots = DAILY_SCHEDULE.filter(s => s.type === 'module' && !s.locked);
+
     // We only fill as many slots as we have recommendations for.
+    // Pinned slots are skipped during mood reordering; their assignment is locked.
     const newFlexOrder = [...state.ttFlexOrder];
+    let rIdx = 0;
     for (let i = 0; i < newFlexOrder.length; i++) {
-      if (recommendedOrder[i]) {
-        newFlexOrder[i] = { subjectId: recommendedOrder[i].subjectId, topicId: recommendedOrder[i].topicId || null };
+      const originalSlot = flexSlots[i];
+      if (originalSlot && originalSlot.topicId) {
+        // Pinned slot: always restore the exact subject+topic from DAILY_SCHEDULE
+        newFlexOrder[i] = { subjectId: originalSlot.subjectId, topicId: originalSlot.topicId };
+      } else {
+        // Generic slot: assign from mood-ordered recommendations
+        if (recommendedOrder[rIdx]) {
+          newFlexOrder[i] = { subjectId: recommendedOrder[rIdx].subjectId, topicId: recommendedOrder[rIdx].topicId || null };
+          rIdx++;
+        }
       }
     }
 
     state.ttFlexOrder = newFlexOrder;
-    sessionStorage.setItem('gk_tt_flex_order_v7_' + state.user.id, JSON.stringify(newFlexOrder));
+    sessionStorage.setItem('gk_tt_flex_order_v9_' + state.user.id, JSON.stringify(newFlexOrder));
     console.log("Timetable auto-reordered based on mood:", recommendedOrder.map(r => r.subjectId));
   }
 
@@ -2547,8 +2661,83 @@ const GKApp = (() => {
     navigate('learning');
   }
 
+  // ─── Capture whatever game/assessment progress exists and persist to profile ───
+  // Called whenever the student navigates away before completing the full flow.
+  //
+  // KEY RULE: clicking "Play Game & Earn XP!" (startGame) is the point of no
+  // return — it sets state.phase = 'game'. From that moment the attempt is
+  // counted even if the student answered 0 questions. Score = correct / total
+  // where unanswered questions count as 0 correct.
+  function _capturePartialResult() {
+    if (!state.user) return;
+    const m = state.modules[state.activeModuleIdx];
+    if (!m) return;
+    const subtopic = _getCurrentSubtopic();
+    if (!subtopic) return;
+    const subtopicKey = m.topicId + '-' + subtopic.id;
+
+    // ── Path A: game phase — startGame() was explicitly called ──────────────
+    // state.phase === 'game' is set only by startGame() (user clicked the CTA).
+    // That deliberate action constitutes an attempt; always save.
+    if (state.currentScreen === 'learning' && state.phase === 'game' && subtopic.game) {
+      const gs = state.gameState;
+      const game = subtopic.game;
+      let score = gs.score || 0;
+      let total = 0;
+
+      if (game.type === 'mcq-game') {
+        // total is always the full question bank; unanswered count as wrong
+        total = (gs.completed && gs.total) ? gs.total : game.items.length;
+
+      } else if (game.type === 'graph-read') {
+        total = (gs.completed && gs.total) ? gs.total : (game.questions ? game.questions.length : 0);
+
+      } else if (game.type === 'classify') {
+        total = game.items ? game.items.length : 0;
+        // score only exists after submission; if not submitted yet, stays 0
+
+      } else if (game.type === 'sequence-order') {
+        total = game.items ? game.items.length : 0;
+
+      } else if (game.type === 'fill-blank') {
+        total = game.sentences ? game.sentences.length : 0;
+
+      } else if (game.type === 'para-writing') {
+        total = 1;
+
+      } else {
+        // breathe / unknown — mark as 1/1 so it shows as completed
+        total = 1;
+        score = 1;
+      }
+
+      if (total === 0) return;   // no questions to speak of — skip
+      GKStore.recordSubtopicComplete(subtopicKey);
+      GKStore.saveSubtopicScore(state.user.id, subtopicKey, score, total);
+      localStorage.setItem('gk_sync_ping', Date.now().toString());
+      return;
+    }
+
+    // ── Path B: concepts phase — student hasn't started game yet ────────────
+    // (phase === 'concepts') Do NOT count as attempted; they only read concepts.
+
+    // ── Path C: pure assessment screen ──────────────────────────────────────
+    // Entering the assessment screen (navigate('assessment') from startSubtopic)
+    // is itself the attempt trigger — same logic as Path A.
+    if (state.currentScreen === 'assessment' && !state._isFinalAssessment) {
+      const results = GKAssessment.getResults();
+      // total comes from how many questions were loaded (even if 0 answered)
+      if (results.total === 0) return;
+      GKStore.recordSubtopicComplete(subtopicKey);
+      GKStore.saveSubtopicScore(state.user.id, subtopicKey, results.score, results.total);
+      localStorage.setItem('gk_sync_ping', Date.now().toString());
+    }
+  }
+
   function backToSubtopics() {
+    _capturePartialResult();   // always save before leaving
     state.aiMessages = [];
+    state.gameState = {};      // reset game state so next entry starts fresh
     navigate('subtopics');
   }
 
@@ -2600,7 +2789,7 @@ const GKApp = (() => {
 
   function nextConcept() {
     state.conceptIdx++;
-    
+
     // Award XP only if new
     const m = state.modules[state.activeModuleIdx];
     const conceptKey = `${m.subjectId}-${m.topicId}-${state.activeSubtopicIdx}-${state.conceptIdx}`;
@@ -2610,12 +2799,14 @@ const GKApp = (() => {
     }
 
     render();
+    _pushLiveState();
   }
 
   function prevConcept() {
     if (state.conceptIdx > 0) {
       state.conceptIdx--;
       render();
+      _pushLiveState();
     }
   }
 
@@ -2836,9 +3027,14 @@ const GKApp = (() => {
 
     const m = state.modules[state.activeModuleIdx];
     const subtopic = _getCurrentSubtopic();
-    GKStore.recordSubtopicComplete(m.topicId + '-' + subtopic.id);
+    const subtopicKey = m.topicId + '-' + subtopic.id;
+    GKStore.recordSubtopicComplete(subtopicKey);
+    // Persist score to user profile so it survives page refresh
+    if (state.user && gs.score !== undefined && gs.total) {
+      GKStore.saveSubtopicScore(state.user.id, subtopicKey, gs.score, gs.total);
+    }
     localStorage.setItem('gk_sync_ping', Date.now().toString());
-    state._pendingSubtopicKey = m.topicId + '-' + subtopic.id;
+    state._pendingSubtopicKey = subtopicKey;
     state.subtopicFeedbackResponses = {};
     state.conceptIdx = 0;
     state.phase = 'concepts';
@@ -2865,7 +3061,7 @@ const GKApp = (() => {
         ? `Excellent! ${result.explanation}`
         : `Not quite, but don't worry! ${result.explanation}`;
       bubble.textContent = msg;
-      // GKVoice.speak(msg); // Silenced as per user request
+      GKVoice.speak(msg);
     }
   }
 
@@ -3335,6 +3531,113 @@ const GKApp = (() => {
           GKVoice.toggle(); // Start muted
         }
         navigate('modules');
+
+        // ── Mirror live-refresh via SSE ──────────────────────────────────────
+        // Two types of SSE events are handled:
+        //
+        // 1. live_state — student navigated/changed screen/concept.
+        //    Apply the state snapshot directly and re-render (no network fetch,
+        //    no iframe reload — instant and flicker-free).
+        //
+        // 2. Everything else (update) — student saved data to the server.
+        //    Re-fetch the full snapshot and rebuild the modules list so the
+        //    mentor sees the latest scores and completions.
+
+        // Fetch and apply the student's last known live state immediately on
+        // load so the mirror starts on the correct screen rather than always
+        // showing the modules list.
+        fetch(`/api/live-state/${mirrorUserId}`)
+          .then(r => r.json())
+          .then(({ data }) => {
+            if (!data) return;
+            const ls = data;
+            if (ls.screen) state.currentScreen = ls.screen;
+            if (ls.activeModuleIdx  != null) state.activeModuleIdx   = ls.activeModuleIdx;
+            if (ls.activeTopicId    != null) state.activeTopicId     = ls.activeTopicId;
+            if (ls.activeSubjectId  != null) state.activeSubjectId   = ls.activeSubjectId;
+            if (ls.activeSubtopicIdx != null) state.activeSubtopicIdx = ls.activeSubtopicIdx;
+            if (ls.conceptIdx       != null) state.conceptIdx        = ls.conceptIdx;
+            if (ls.phase            != null) state.phase             = ls.phase;
+            if (ls.assessmentTopicId != null) state.assessmentTopicId = ls.assessmentTopicId;
+            if (ls.moodPhase        != null) state.moodPhase         = ls.moodPhase;
+            render();
+          })
+          .catch(() => {}); // silently ignore — modules screen remains
+
+        const _mirrorSse = new EventSource('/api/events');
+        _mirrorSse.addEventListener('update', async (e) => {
+          let payload = {};
+          try { payload = JSON.parse(e.data || '{}'); } catch (_) {}
+
+          // ── live_state: student navigated — apply immediately ──────────────
+          if (payload.type === 'live_state' && payload.userId === mirrorUserId) {
+            const ls = payload.liveState || {};
+            if (ls.screen            != null) state.currentScreen    = ls.screen;
+            if (ls.activeModuleIdx   != null) state.activeModuleIdx  = ls.activeModuleIdx;
+            if (ls.activeTopicId     != null) state.activeTopicId    = ls.activeTopicId;
+            if (ls.activeSubjectId   != null) state.activeSubjectId  = ls.activeSubjectId;
+            if (ls.activeSubtopicIdx != null) state.activeSubtopicIdx = ls.activeSubtopicIdx;
+            if (ls.conceptIdx        != null) state.conceptIdx       = ls.conceptIdx;
+            if (ls.phase             != null) state.phase            = ls.phase;
+            if (ls.assessmentTopicId != null) state.assessmentTopicId = ls.assessmentTopicId;
+            if (ls.moodPhase         != null) state.moodPhase        = ls.moodPhase;
+            render();
+            return;
+          }
+
+          // ── data update: student saved something — refresh from server ─────
+          await GKDatabase.refresh();
+          const freshProfile = GKStore.getUserProfile(mirrorUserId);
+          if (!freshProfile) return;
+
+          state.user = { ...baseUser, ...freshProfile };
+
+          const freshSession = GKStore.getSession();
+          if (freshSession && freshSession.userId === mirrorUserId) {
+            state.mood = freshSession.mood;
+            if (state.mood) {
+              state.calibration = GKMoodEngine.calibrateSession(
+                state.mood.brainBattery, state.mood.currentVibe
+              );
+            }
+          }
+
+          const unlockedTopics = freshProfile.unlockedTopics || [];
+          state.modules = GKRecommender.getRecommendedModules(
+            state.calibration || GKMoodEngine.calibrateSession(80, 'high_energy'),
+            freshProfile.completedTopics || []
+          ).filter(m => !_isTopicHidden(m, unlockedTopics))
+           .map((m, idx) => ({ ...m, _origIdx: idx }));
+
+          render();
+        });
+        _mirrorSse.onerror = () => console.warn('[GKMirror] SSE connection lost — browser will retry automatically');
+
+        // ── Polling fallback ─────────────────────────────────────────────────
+        // Poll /api/live-state every 2 s as a reliable backup to SSE.
+        // Change detection prevents unnecessary re-renders.
+        let _mirrorLastSig = '';
+        function _applyLiveState(ls) {
+          const sig = `${ls.screen}|${ls.activeModuleIdx}|${ls.activeSubtopicIdx}|${ls.conceptIdx}|${ls.phase}`;
+          if (sig === _mirrorLastSig) return;
+          _mirrorLastSig = sig;
+          console.log('[GKMirror] state →', sig);
+          if (ls.screen            != null) state.currentScreen    = ls.screen;
+          if (ls.activeModuleIdx   != null) state.activeModuleIdx  = ls.activeModuleIdx;
+          if (ls.activeSubtopicIdx != null) state.activeSubtopicIdx = ls.activeSubtopicIdx;
+          if (ls.conceptIdx        != null) state.conceptIdx       = ls.conceptIdx;
+          if (ls.phase             != null) state.phase            = ls.phase;
+          if (ls.assessmentTopicId != null) state.assessmentTopicId = ls.assessmentTopicId;
+          if (ls.moodPhase         != null) state.moodPhase        = ls.moodPhase;
+          render();
+        }
+        setInterval(async () => {
+          try {
+            const r = await fetch(`/api/live-state/${mirrorUserId}`);
+            const { data } = await r.json();
+            if (data) _applyLiveState(data);
+          } catch (_) {}
+        }, 2000);
       }
     } else {
       // Check if user is already logged in
@@ -3347,8 +3650,13 @@ const GKApp = (() => {
       }
     }
 
+    // Periodically push live state so mirror can catch up even if it opens late.
+    // _pushLiveState() is a no-op when user is not logged in or in mirror mode.
+    setInterval(() => _pushLiveState(), 3000);
+
     // Real-time synchronization: listen for changes from mentor dashboard (or other tabs)
     window.addEventListener('storage', (e) => {
+      if (state.isMirror) return;  // mirror mode uses SSE — storage events not needed
       const activeId = state.user ? state.user.id : null;
       if (activeId) {
         // Re-sync user profile from storage
@@ -3364,7 +3672,7 @@ const GKApp = (() => {
             if (newNotes.length > oldNotes.length) {
               const note = newNotes[newNotes.length - 1];
               const msg = `Namaste! A new word of guidance has arrived from your Guru: "${note.message}" 🙏`;
-              // GKVoice.speak(msg); // Silenced as per user request
+              GKVoice.speak(msg);
               state.activeNotification = {
                 text: msg,
                 htmlContent: `${msg} <div style="margin-top:10px;"><button class="btn btn-sm" onclick="GKApp.clearAgentNotification()" style="background:#FFF9C4; color:#6B3F1A; border:1px solid #FFE082; padding:2px 10px; font-size:0.75rem; border-radius:15px; font-weight:700;">✅ Got it</button></div>`
@@ -3372,7 +3680,7 @@ const GKApp = (() => {
             } else if ((updatedUser.totalXP || 0) > (state.user.totalXP || 0)) {
               const diff = updatedUser.totalXP - state.user.totalXP;
               const msg = `Wonderful news! Your Guru has awarded you ${diff} bonus XP for your dedication. 🌟`;
-              // GKVoice.speak(msg); // Silenced
+              GKVoice.speak(msg);
               state.activeNotification = {
                 text: msg,
                 htmlContent: `${msg} <div style="margin-top:10px;"><button class="btn btn-sm" onclick="GKApp.clearAgentNotification()" style="background:#FFF9C4; color:#6B3F1A; border:1px solid #FFE082; padding:2px 10px; font-size:0.75rem; border-radius:15px; font-weight:700;">✅ Clear</button></div>`
@@ -3403,6 +3711,7 @@ const GKApp = (() => {
 
     // Fallback polling (essential for local file:// cross-tab syncing)
     setInterval(() => {
+      if (state.isMirror) return;  // mirror mode uses SSE — polling not needed
       const activeId = state.user ? state.user.id : null;
       if (activeId) {
         const profile = GKStore.getUserProfile(activeId);
@@ -3417,7 +3726,7 @@ const GKApp = (() => {
           if (newNotes.length > oldNotes.length) {
             const note = newNotes[newNotes.length - 1];
             const msg = `Namaste! Your Guru has sent some new guidance: "${note.message}" 🙏`;
-            // GKVoice.speak(msg); // Silenced
+            GKVoice.speak(msg);
             state.activeNotification = {
               text: msg,
               htmlContent: `${msg} <div style="margin-top:10px;"><button class="btn btn-sm" onclick="GKApp.clearAgentNotification()" style="background:#FFF9C4; color:#6B3F1A; border:1px solid #FFE082; padding:2px 10px; font-size:0.75rem; border-radius:15px; font-weight:700;">✅ Got it</button></div>`
@@ -3425,7 +3734,7 @@ const GKApp = (() => {
           } else if ((mergedUser.totalXP || 0) > (state.user.totalXP || 0)) {
             const diff = mergedUser.totalXP - state.user.totalXP;
             const msg = `Excellent! You have received ${diff} bonus XP from your Guru. 🌟`;
-            // GKVoice.speak(msg); // Silenced
+            GKVoice.speak(msg);
             state.activeNotification = {
               text: msg,
               htmlContent: `${msg} <div style="margin-top:10px;"><button class="btn btn-sm" onclick="GKApp.clearAgentNotification()" style="background:#FFF9C4; color:#6B3F1A; border:1px solid #FFE082; padding:2px 10px; font-size:0.75rem; border-radius:15px; font-weight:700;">✅ Clear</button></div>`
@@ -3520,7 +3829,7 @@ const GKApp = (() => {
     const order = state.ttFlexOrder;
     [order[src], order[fp]] = [order[fp], order[src]];
     state.ttFlexOrder = order;
-    sessionStorage.setItem('gk_tt_flex_order_v7_' + state.user.id, JSON.stringify(order));
+    sessionStorage.setItem('gk_tt_flex_order_v9_' + state.user.id, JSON.stringify(order));
 
     // Fix: Clear dragging state before render, otherwise render() will return early
     state.isDragging = false;
@@ -3802,7 +4111,7 @@ const GKApp = (() => {
       else msg = "This was a good attempt. Focus on specific areas and try again to deepen your wisdom. 🙏";
 
       bubble.textContent = msg;
-      // GKVoice.speak(msg); // Silenced as per user request
+      GKVoice.speak(msg);
     }
   }
 
@@ -4099,7 +4408,7 @@ const GKApp = (() => {
       await GK_AI_CONFIG.ensureLoaded();
 
       // 2. Show dynamic loading state
-      const toggleHtml = `<button class="krishna-voice-toggle" onclick="GKVoice.toggle(this)" title="Toggle Krishna voice" style="background:none;border:none;cursor:pointer;font-size:1rem;opacity:0.65;padding:0.15rem 0.3rem;float:right;line-height:1;" aria-label="Toggle voice">🔊</button>`;
+      const toggleHtml = `<button class="krishna-voice-toggle" onclick="GKVoice.toggle(this)" title="Toggle Krishna voice" style="background:none;border:none;cursor:pointer;font-size:1rem;opacity:0.65;padding:0.15rem 0.3rem;float:right;line-height:1;" aria-label="Toggle voice">${GKVoice.isEnabled() ? '🔊' : '🔇'}</button>`;
       bubble.innerHTML = `<span class="sparkle-rotate">✨</span> <span class="thinking-dots">Acharya is reflecting</span> ${toggleHtml}`;
       
       // 3. Clear input
@@ -4122,6 +4431,7 @@ const GKApp = (() => {
       try {
         const response = await GKAITutor.respond(text, context);
         bubble.innerHTML = `${response} ${toggleHtml}`;
+        GKVoice.speak(response);
         if (!state.chatHistory) state.chatHistory = [];
         state.chatHistory.push({ role: 'user', text });
         state.chatHistory.push({ role: 'ai', text: response });
@@ -4140,5 +4450,9 @@ const GKApp = (() => {
   };
 })();
 
-// Boot the app when DOM is ready
-document.addEventListener('DOMContentLoaded', () => GKApp.init());
+// Boot the app when DOM is ready.
+// GKDatabase.init() is async (sql.js WASM load); everything after is synchronous.
+document.addEventListener('DOMContentLoaded', async () => {
+  await GKDatabase.init();
+  GKApp.init();
+});

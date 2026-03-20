@@ -36,10 +36,11 @@ const GKMentorApp = (() => {
   }
 
   function renderInPlace() {
-    // If we are on liveView, don't do a full innerHTML swap as it causes the iframe to blink black
+    // If we are on liveView, don't swap the mentor's outer HTML — the iframe
+    // manages its own real-time updates via SSE live_state events.
     if (state.currentScreen === 'liveView') {
       const frame = document.getElementById('sacred-mirror-frame');
-      if (frame) return; // Let the iframe handle its own sync via storage events
+      if (frame) return;
     }
     const scrollY = window.scrollY;
     render();
@@ -617,6 +618,22 @@ const GKMentorApp = (() => {
                       </div>
                     </div>
 
+                    <!-- Group 4: Score Management -->
+                    <div class="mas-control-group" style="border-top: 1px solid #f0e8ff; padding-top: 1.25rem; margin-top: 0.5rem;">
+                      <div class="mas-group-header">
+                        <span class="mas-group-label" style="color:#b91c1c;">⚠️ Score Management</span>
+                      </div>
+                      <div style="font-size:0.78rem; color:#6b7280; margin-bottom:0.75rem;">
+                        Clears all subtopic scores, assessment attempts, and completion markers for this student. This cannot be undone.
+                      </div>
+                      <button class="mas-btn-danger" onclick="GKMentorApp.clearAllScores('${id}')">
+                        🗑️ Clear All Scores
+                      </button>
+                      <div id="clear-scores-confirm" class="mas-confirm-toast hidden" style="background:#fef2f2; color:#b91c1c; border:1px solid #fca5a5;">
+                        ✅ All scores cleared for ${student.displayName}
+                      </div>
+                    </div>
+
                     <div id="note-confirm" class="mas-confirm-toast hidden">✅ Guidance Transmitted</div>
                     <div id="admin-feedback-confirm" class="mas-confirm-toast hidden">✅ Private Note Saved</div>
                   </div>
@@ -843,6 +860,25 @@ const GKMentorApp = (() => {
     const msgEl = document.getElementById('admin-feedback-msg');
     if (msgEl) msgEl.value = '';
 
+    setTimeout(() => { renderInPlace(); }, 1500);
+  }
+
+  function clearAllScores(userId) {
+    const student = state.students[userId];
+    const name = student ? (student.displayName || userId) : userId;
+    const confirmed = window.confirm(
+      `Clear ALL scores for ${name}?\n\nThis will erase:\n• All subtopic scores\n• All assessment attempts\n• All completion markers\n\nThis cannot be undone.`
+    );
+    if (!confirmed) return;
+
+    GKStore.resetAllScores(userId);
+
+    // Refresh local mentor state so the UI reflects the reset immediately
+    const freshProfile = GKStore.getUserProfile(userId);
+    if (freshProfile) state.students[userId] = { ...state.students[userId], ...freshProfile };
+
+    const confirmEl = document.getElementById('clear-scores-confirm');
+    if (confirmEl) confirmEl.classList.remove('hidden');
     setTimeout(() => { renderInPlace(); }, 1500);
   }
 
@@ -1774,20 +1810,23 @@ const GKMentorApp = (() => {
 
     render();
 
-    // Auto-refresh when another tab updates localStorage (e.g. student completing modules)
-    window.addEventListener('storage', (e) => {
-      if (e.key === 'gk_sync_ping' || e.key === 'gk_user_profiles' || e.key === 'gk_session_log' || e.key.startsWith('gk_demo_overrides_')) {
-        if (state.mentor) {
-          state.students = GKStore.getAllStudentProfiles();
-          if (state.selectedStudentId) {
-            // Refresh detailed student data too
-            const profile = GKStore.getUserProfile(state.selectedStudentId);
-            if (profile) state.students[state.selectedStudentId] = { ...state.students[state.selectedStudentId], ...profile };
-          }
-          renderInPlace();
+    // Real-time sync via Server-Sent Events — fires whenever any student
+    // writes data (server broadcasts 'update' after every write endpoint).
+    const _sse = new EventSource('/api/events');
+    _sse.addEventListener('update', async () => {
+      if (state.mentor) {
+        await GKDatabase.refresh();   // re-fetch full snapshot into cache
+        state.students = GKStore.getAllStudentProfiles();
+        if (state.selectedStudentId) {
+          const profile = GKStore.getUserProfile(state.selectedStudentId);
+          if (profile) state.students[state.selectedStudentId] = { ...state.students[state.selectedStudentId], ...profile };
         }
+        renderInPlace();
       }
     });
+    _sse.onerror = () => {
+      console.warn('[GKMentor] SSE connection lost — will retry automatically');
+    };
 
     // Fallback polling (essential for local file:// cross-tab syncing)
     setInterval(() => {
@@ -1846,7 +1885,7 @@ const GKMentorApp = (() => {
     rewardStudent, promoteStudent,
     addToPath, removeFromPath,
     openSuggestionForm, sendSuggestion,
-    sendAdminFeedback, sendParentFeedback, submitEvaluation,
+    sendAdminFeedback, sendParentFeedback, submitEvaluation, clearAllScores,
     onQuotientInput, saveHolisticQuotient,
     triggerAIEvaluation, renderInPlace,
     toggleNarayana, toggleSection,
@@ -1855,10 +1894,15 @@ const GKMentorApp = (() => {
     selectMentorMood, submitMentorMood, updateMentorBattery,
     navigate, renderLiveView, generateAndSaveHQ,
     sendNarayanaQuery,
-    toggleMute: (btn) => GKVoice.toggle(btn)
+    toggleMute: (btn) => GKVoice.toggle(btn),
+    logout
   };
 
 })();
 
 // Boot when DOM ready — v18
-document.addEventListener('DOMContentLoaded', () => GKMentorApp.init());
+// GKDatabase.init() is async (sql.js WASM load); everything after is synchronous.
+document.addEventListener('DOMContentLoaded', async () => {
+  await GKDatabase.init();
+  GKMentorApp.init();
+});

@@ -1,0 +1,49 @@
+'use strict';
+// ============================================================
+// SERVER: index.js
+// Express entry point for Gurukul.
+//
+// Start with:  node server/index.js   (or npm start)
+//
+// Serves:
+//   /          → static files from wizkids/  (student.html, mentor.html, etc.)
+//   /api/*     → REST API routes (server/routes.js)
+// ============================================================
+
+const path    = require('path');
+const express = require('express');
+const { init: initDB } = require('./db');
+const { syncConfig }   = require('./config-loader');
+const apiRoutes = require('./routes');
+
+const PORT    = process.env.PORT || 3000;
+const STATIC  = path.resolve(__dirname, '..');  // serve wizkids/ root
+
+// ── Init DB then sync learning-path config ────────────────────────────────────
+initDB();
+syncConfig();   // reads config/learning-paths.json → upserts into SQLite
+
+// ── Express app ──────────────────────────────────────────────────────────────
+const app = express();
+
+app.use(express.json({ limit: '5mb' }));
+
+// Static file serving — CSS, JS, images, HTML pages
+app.use(express.static(STATIC));
+
+// API routes
+app.use('/api', apiRoutes);
+
+// SPA fallback: serve student.html for unknown paths (mentor.html is explicit)
+app.get('*', (req, res) => {
+  res.sendFile(path.join(STATIC, 'student.html'));
+});
+
+// ── Start ─────────────────────────────────────────────────────────────────────
+// Listen on 0.0.0.0 so Docker exposes the port on all interfaces.
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`[GKServer] Gurukul running on port ${PORT}`);
+  console.log(`  Student  → http://localhost:${PORT}/student.html`);
+  console.log(`  Mentor   → http://localhost:${PORT}/mentor.html`);
+  console.log(`  API docs → http://localhost:${PORT}/api/init  (GET)`);
+});

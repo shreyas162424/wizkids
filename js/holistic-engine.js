@@ -89,32 +89,85 @@ const HolisticEvaluationEngine = (() => {
    * Now separates AI and Mentor scores for AQ/SQ.
    */
   function getMergedScores(userId) {
-    const scores = GKStore.getHolisticScores(userId) || {};
-    const ai = scores.ai || { aq: 50, eq: 50, sq: 50, pq: 50 };
-    const mentor = scores.mentor || {};
-    const history = scores.history || [];
+    const scores      = GKStore.getHolisticScores(userId) || {};
+    const ai          = scores.ai         || { aq: 50, eq: 50, sq: 50, pq: 50 };
+    const mentor      = scores.mentor     || {};
+    const mentorEval  = scores.mentor_eval || {};   // question-based evaluations
+    const history     = scores.history    || [];
+
+    // For AQ and EQ, prefer the question-based computed score if it exists,
+    // falling back to a direct numeric entry if the mentor typed one in.
+    const human_aq = mentorEval.aq ? mentorEval.aq.score
+                   : (mentor.aq !== undefined ? mentor.aq : null);
+    const human_eq = mentorEval.eq ? mentorEval.eq.score
+                   : (mentor.eq !== undefined ? mentor.eq : null);
 
     const metrics = {
-      ai_aq: ai.aq,
-      human_aq: mentor.aq !== undefined ? mentor.aq : null,
-      ai_sq: ai.sq,
+      ai_aq:    ai.aq,
+      human_aq,
+      ai_sq:    ai.sq,
       human_sq: mentor.sq !== undefined ? mentor.sq : null,
-      eq: ai.eq, // EQ and PQ are autopopulated by AI/System for now
-      pq: ai.pq
+      ai_eq:    ai.eq,
+      human_eq,
+      ai_pq:    ai.pq,
+      human_pq: mentor.pq !== undefined ? mentor.pq : null,
+      eval_aq:  mentorEval.aq || null,   // full eval answers, exposed for edit pre-fill
+      eval_eq:  mentorEval.eq || null,
     };
 
-    // composite calculation
-    const avgAQ = metrics.human_aq !== null ? (metrics.ai_aq + metrics.human_aq) / 2 : metrics.ai_aq;
-    const avgSQ = metrics.human_sq !== null ? (metrics.ai_sq + metrics.human_sq) / 2 : metrics.ai_sq;
-    
-    metrics.hq = Math.round((avgAQ + avgSQ + metrics.eq + metrics.pq) / 4);
-    
-    return {
-        ai,
-        mentor,
-        metrics,
-        history
+    const avgAQ = metrics.human_aq !== null ? Math.round((metrics.ai_aq + metrics.human_aq) / 2) : metrics.ai_aq;
+    const avgSQ = metrics.human_sq !== null ? Math.round((metrics.ai_sq + metrics.human_sq) / 2) : metrics.ai_sq;
+    const avgEQ = metrics.human_eq !== null ? Math.round((metrics.ai_eq + metrics.human_eq) / 2) : metrics.ai_eq;
+    const avgPQ = metrics.human_pq !== null ? Math.round((metrics.ai_pq + metrics.human_pq) / 2) : metrics.ai_pq;
+
+    metrics.hq = Math.round((avgAQ + avgSQ + avgEQ + avgPQ) / 4);
+
+    return { ai, mentor, metrics, history };
+  }
+
+  /**
+   * Saves a question-based evaluation (AQ or EQ).
+   * Computes the 0-100 score from the 3 answers (1-5 each) and persists:
+   *   1. The full scoresData blob to holistic_scores (via GKStore)
+   *   2. A normalized row to holistic_evaluations (via /api/mentor/holistic-eval)
+   */
+  function saveEvaluation(userId, quotient, answers, observations) {
+    if (answers.q1 == null || answers.q2 == null || answers.q3 == null) {
+      console.warn('[HolisticEngine] saveEvaluation: all three answers are required');
+      return null;
+    }
+    // Scale 1–5 → 0–100: rating=1 → 0, rating=3 → 50, rating=5 → 100
+    const avg   = (answers.q1 + answers.q2 + answers.q3) / 3;
+    const score = Math.round(((avg - 1) / 4) * 100);
+
+    const scoresData = GKStore.getHolisticScores(userId) || { history: [] };
+    if (!scoresData.mentor_eval) scoresData.mentor_eval = {};
+    if (!scoresData.mentor)      scoresData.mentor      = {};
+    if (!scoresData.history)     scoresData.history     = [];
+
+    scoresData.mentor_eval[quotient] = {
+      q1: answers.q1, q2: answers.q2, q3: answers.q3,
+      observations: observations || '',
+      score,
+      savedAt: new Date().toISOString()
     };
+
+    // Keep mentor[quotient] in sync so backward-compat code still reads a value
+    scoresData.mentor[quotient] = score;
+    scoresData.history.push({ type: 'mentor_eval', quotient, score, updatedAt: new Date().toISOString() });
+
+    // 1. Save full blob (holistic_scores table via existing route)
+    GKStore.saveHolisticScores(userId, scoresData);
+
+    // 2. Write normalized row to holistic_evaluations table
+    GKDatabase._post('/api/mentor/holistic-eval', {
+      userId, quotient,
+      q1: answers.q1, q2: answers.q2, q3: answers.q3,
+      score, observations: observations || ''
+    });
+
+    if (typeof GKMentorApp !== 'undefined') GKMentorApp.renderInPlace();
+    return score;
   }
 
   /**
@@ -178,6 +231,7 @@ const HolisticEvaluationEngine = (() => {
   return {
     analyzeStudent,
     getMergedScores,
-    saveMentorScore
+    saveMentorScore,
+    saveEvaluation
   };
 })();
