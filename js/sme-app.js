@@ -67,6 +67,28 @@ window.GKSmeApp = (function () {
   // ── Auth ───────────────────────────────────────────────────────────
   function isLoggedIn() { return sessionStorage.getItem(AUTH_KEY) === '1'; }
 
+  function renderHeaderRight() {
+    const role = sessionStorage.getItem(ROLE_KEY) || 'sme';
+    const isMentor = role === 'mentor';
+    
+    // Use data from users.js if available
+    const userData = isMentor ? GK_MENTOR : GK_SME;
+    const name = userData.displayName + (isMentor ? ' (Mentor)' : ' (SME)');
+    const avatar = userData.photo + '?v=' + Date.now();
+    const badge = isMentor ? '🕉 Mentor' : '📚 SME';
+
+    return `
+        <div class="sme-header-right" style="display: flex; align-items: center; gap: 1rem;">
+          <div style="display: flex; align-items: center; gap: 0.5rem; background: rgba(255,255,255,0.5); padding: 4px 12px 4px 4px; border-radius: 20px; border: 1px solid #e8c96a;">
+            <img src="${avatar}" alt="Avatar" style="width: 28px; height: 28px; border-radius: 50%; object-fit: cover; background: #eee; display: block;" 
+                 onerror="this.src='img/wizkids-logo.png'; this.onerror=null;" />
+            <span style="font-size: 0.9rem; font-weight: 600; color: #4a381c;">${name}</span>
+            <span class="men-role-badge" style="margin-left: 4px; padding: 2px 6px;">${badge}</span>
+          </div>
+          <button class="sme-btn sme-btn-ghost" onclick="GKSmeApp.logout()">Sign Out</button>
+        </div>`;
+  }
+
   // ── Data helpers ───────────────────────────────────────────────────
   function findTopic(topicId) {
     for (const subj of GK_TOPICS.subjects) {
@@ -962,10 +984,7 @@ window.GKSmeApp = (function () {
             <div class="sme-brand-sub">Mentor Teaching Guide</div>
           </div>
         </div>
-        <div class="sme-header-right">
-          <span class="men-role-badge">🕉 Mentor</span>
-          <button class="sme-btn sme-btn-ghost" onclick="GKSmeApp.logout()">Sign Out</button>
-        </div>
+        ${renderHeaderRight()}
       </header>
 
       ${renderNarayanaPane()}
@@ -1281,10 +1300,7 @@ window.GKSmeApp = (function () {
           <span class="sme-header-sep">|</span>
           <span class="sme-brand-name" style="color:${sc}">${topic.icon} ${topic.name}</span>
         </div>
-        <div class="sme-header-right">
-          <span class="men-role-badge">🕉 Mentor</span>
-          <button class="sme-btn sme-btn-ghost" onclick="GKSmeApp.logout()">Sign Out</button>
-        </div>
+        ${renderHeaderRight()}
       </header>
 
       ${renderNarayanaPane()}
@@ -1496,9 +1512,7 @@ window.GKSmeApp = (function () {
             <div class="sme-brand-sub">Curated Content</div>
           </div>
         </div>
-        <div class="sme-header-right">
-          <button class="sme-btn sme-btn-ghost" onclick="GKSmeApp.logout()">Sign Out</button>
-        </div>
+        ${renderHeaderRight()}
       </header>
 
       <div class="sme-main">
@@ -1858,9 +1872,9 @@ window.GKSmeApp = (function () {
                  style="width:28px;height:auto;border-radius:50%;" />
             <span class="sme-brand-name">${topic.name}</span>
           </div>
-          <div class="sme-header-right">
+          <div style="display: flex; align-items: center; gap: 1rem;">
             <span class="sme-prog-pill">${prog.approved}/${prog.total} reviewed${prog.flagged?' · '+prog.flagged+' flagged':''}${prog.pending===0?' · ✅ Done':''}</span>
-            <button class="sme-btn sme-btn-ghost" onclick="GKSmeApp.logout()">Sign Out</button>
+            ${renderHeaderRight()}
           </div>
         </header>
         <div class="sme-main">

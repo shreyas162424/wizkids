@@ -95,14 +95,11 @@ const GKXPManager = (() => {
 
   // ---- Streak Tracking ----
   function getStreak(userId) {
-    const key = `gk_streak_${userId}`;
-    const data = JSON.parse(localStorage.getItem(key) || '{"count":0,"lastDate":""}');
-    return data;
+    return GKStore.getStreak(userId);
   }
 
   function updateStreak(userId) {
-    const key = `gk_streak_${userId}`;
-    const data = JSON.parse(localStorage.getItem(key) || '{"count":0,"lastDate":""}');
+    const data = GKStore.getStreak(userId);
     const today = new Date().toISOString().split('T')[0];
     const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0];
 
@@ -114,30 +111,27 @@ const GKXPManager = (() => {
       data.count = 1; // Streak broken, restart
     }
     data.lastDate = today;
-    localStorage.setItem(key, JSON.stringify(data));
+    GKStore.saveStreak(userId, data);
     return data;
   }
 
   // ---- Badge Checking ----
   function getBadges(userId) {
-    const key = `gk_badges_${userId}`;
-    return JSON.parse(localStorage.getItem(key) || '[]');
+    return GKStore.getBadges(userId);
   }
 
   function getEarnedBadges(userId) {
-    const key = `gk_badges_${userId}`;
-    const badges = JSON.parse(localStorage.getItem(key) || '[]');
+    const badges = GKStore.getBadges(userId);
     // Migrate old string arrays natively to object
     return badges.map(b => typeof b === 'string' ? { id: b, earnedAt: 0 } : b);
   }
 
   function _saveBadge(userId, badgeId) {
-    const key = `gk_badges_${userId}`;
-    const badges = JSON.parse(localStorage.getItem(key) || '[]');
+    const badges = GKStore.getBadges(userId);
     const exists = badges.some(b => typeof b === 'string' ? b === badgeId : b.id === badgeId);
     if (!exists) {
       badges.push({ id: badgeId, earnedAt: Date.now() });
-      localStorage.setItem(key, JSON.stringify(badges));
+      GKStore.saveBadges(userId, badges);
       return true; // New badge!
     }
     return false;

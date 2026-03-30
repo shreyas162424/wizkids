@@ -230,11 +230,16 @@ a {
    SCREEN 1: LOGIN
    ========================================== */
 .screen-login {
+  display: block;
+  min-height: 100vh;
+  background: linear-gradient(135deg, #F5EDD8 0%, #FDFAF4 100%);
+}
+
+.login-center-wrapper {
   display: flex;
   align-items: center;
   justify-content: center;
-  min-height: 100vh;
-  background: linear-gradient(135deg, #F5EDD8 0%, #FDFAF4 100%);
+  min-height: calc(100vh - 80px); /* Space for header */
 }
 
 .login-card {
@@ -357,11 +362,16 @@ a {
    SCREEN 2: MOOD CHECK
    ========================================== */
 .screen-mood {
+  display: block;
+  min-height: 100vh;
+  background: linear-gradient(135deg, #F5EDD8, #FDFAF4);
+}
+
+.mood-center-wrapper {
   display: flex;
   align-items: center;
   justify-content: center;
-  min-height: 100vh;
-  background: linear-gradient(135deg, #F5EDD8, #FDFAF4);
+  min-height: calc(100vh - 100px); /* Adjusted for unified header */
   padding: 1rem;
 }
 
@@ -2834,6 +2844,285 @@ a {
   50% {
     transform: translateY(-3px);
   }
+}
+
+/* --- Micro-Interactions & Prana Pulse --- */
+.agent-inner-presence {
+  animation: agentFloat 4s ease-in-out infinite;
+  transition: all 0.4s cubic-bezier(0.2, 0.8, 0.2, 1);
+  position: relative;
+}
+
+@keyframes agentFloat {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-6px); }
+}
+
+.agent-avatar-wrap {
+  position: relative;
+  cursor: pointer;
+  z-index: 2;
+  transition: transform 0.3s;
+}
+
+.agent-avatar-wrap:hover {
+  transform: scale(1.05);
+}
+
+.prana-pulse {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 100%;
+  height: 100%;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255,215,0,0.6) 0%, rgba(255,215,0,0) 70%);
+  opacity: 0;
+  pointer-events: none;
+  z-index: -1;
+  transition: opacity 0.3s;
+}
+
+.prana-pulse.pulsing {
+  opacity: 1;
+  animation: pranaWave 1.5s ease-out infinite;
+}
+
+@keyframes pranaWave {
+  0% { transform: translate(-50%, -50%) scale(0.9); opacity: 0.8; }
+  100% { transform: translate(-50%, -50%) scale(1.7); opacity: 0; }
+}
+
+.bubble-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 5px;
+  gap: 8px;
+  align-items: center;
+}
+
+.dhyana-expand-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #C4882A;
+  font-size: 1.1rem;
+  opacity: 0.6;
+  transition: opacity 0.2s, transform 0.2s;
+  padding: 0;
+  line-height: 1;
+}
+
+.dhyana-expand-btn:hover {
+  opacity: 1;
+  transform: scale(1.1);
+}
+
+/* --- Dhyana Mode (Fullscreen Expansion) --- */
+.dhyana-backdrop {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(255, 250, 240, 0.65);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  z-index: 9998;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.4s ease;
+}
+
+.agent-left-pane.dhyana-active .dhyana-backdrop {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.agent-left-pane.dhyana-active .agent-inner-presence {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 90%;
+  max-width: 500px;
+  height: auto;
+  min-height: 45vh;
+  max-height: 85vh;
+  z-index: 9999;
+  animation: dhyanaBloom 0.4s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+  background: #fffcf5; /* Off-white cream from image */
+  border: 1px solid #e8c96a;
+  border-radius: 16px;
+  padding: 0; /* Reset padding to handle header fill */
+  box-shadow: 0 20px 60px rgba(139, 105, 20, 0.15);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden; /* Clip inner elements */
+}
+
+@keyframes dhyanaBloom {
+  0% { transform: translate(-50%, -45%) scale(0.95); opacity: 0; }
+  100% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+}
+
+/* Header glow inside the modal */
+.dhyana-header-glow { display: none; }
+.agent-left-pane.dhyana-active .dhyana-header-glow {
+  display: block;
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 140px;
+  background: radial-gradient(ellipse at top, rgba(232, 201, 106, 0.35) 0%, transparent 70%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* Avatar sizing and position */
+.agent-left-pane.dhyana-active .agent-avatar-wrap {
+  transform: none;
+  margin: 25px auto 10px;
+  z-index: 2;
+  transition: none;
+}
+.agent-left-pane.dhyana-active .agent-avatar-wrap:hover {
+  transform: none;
+  cursor: default;
+}
+.agent-left-pane.dhyana-active .agent-avatar {
+  width: 80px; height: 80px;
+}
+
+/* Close button - Top right */
+.dhyana-close-btn { display: none; }
+.agent-left-pane.dhyana-active .dhyana-close-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  background: transparent;
+  border: 1px solid #d4c5a0;
+  border-radius: 50%;
+  width: 32px; height: 32px;
+  color: #8B6914;
+  cursor: pointer;
+  z-index: 10000;
+  transition: all 0.2s;
+  padding: 0;
+}
+.agent-left-pane.dhyana-active .dhyana-close-btn:hover {
+  background: rgba(232, 201, 106, 0.2);
+}
+
+/* Speech bubble text area */
+.agent-left-pane.dhyana-active .agent-speech-bubble {
+  flex: 1 1 auto; /* Take up remaining space naturally */
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0 35px;
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  text-align: left;
+  overflow: hidden; /* Handled by scrollable content */
+  z-index: 2;
+  cursor: default;
+}
+
+.agent-left-pane.dhyana-active .agent-speech-bubble::before,
+.agent-left-pane.dhyana-active .agent-speech-bubble::after {
+  display: none;
+}
+
+.agent-left-pane.dhyana-active .dhyana-expand-btn {
+  display: none;
+}
+
+.agent-left-pane.dhyana-active .bubble-content {
+  flex: 1;
+  overflow-y: auto;
+  font-size: 1.05rem;
+  line-height: 1.6;
+  color: #4a381c;
+  padding-right: 15px; /* Space for scrollbar */
+}
+
+/* Custom Scrollbar for bubble-content */
+.agent-left-pane.dhyana-active .bubble-content::-webkit-scrollbar {
+  width: 6px;
+}
+.agent-left-pane.dhyana-active .bubble-content::-webkit-scrollbar-track {
+  background: rgba(232, 201, 106, 0.1);
+  border-radius: 4px;
+}
+.agent-left-pane.dhyana-active .bubble-content::-webkit-scrollbar-thumb {
+  background: #cba353;
+  border-radius: 4px;
+}
+
+/* Speaker Icon / Actions */
+.agent-left-pane.dhyana-active .bubble-actions {
+  justify-content: center;
+  margin: 15px 0 5px 0;
+}
+.agent-left-pane.dhyana-active .gk-voice-toggle {
+  font-size: 1.4rem !important;
+  opacity: 0.5 !important;
+}
+
+/* Input area */
+.agent-left-pane.dhyana-active .agent-inline-chat {
+  width: 100%;
+  max-width: none;
+  margin: 0 !important;
+  padding: 10px 35px 30px 35px;
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  z-index: 2;
+  position: relative;
+}
+
+/* Pill shaped input in Dhyana */
+.agent-left-pane.dhyana-active .agent-inline-input {
+  border-radius: 30px;
+  background: #fff;
+  border: 1px solid #e0d0b0;
+  padding: 14px 45px 14px 20px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.03);
+  font-size: 0.95rem;
+  width: 100%;
+}
+
+/* Circular Send button */
+.agent-left-pane.dhyana-active .agent-inline-send {
+  position: absolute;
+  right: 44px; /* Align right side logic */
+  top: 50%;
+  transform: translateY(-50%);
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: #c58f3b; /* Orange/Gold */
+  color: white;
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  cursor: pointer;
+  transition: transform 0.2s, background 0.2s;
+  z-index: 5;
+}
+.agent-left-pane.dhyana-active .agent-inline-send:hover {
+  background: #b37e30;
+  transform: translateY(-50%) scale(1.05);
+}
+.agent-left-pane.dhyana-active .agent-inline-send svg {
+  width: 16px;
+  height: 16px;
+  margin-left: 2px; /* Slight optical adjustment for send arrow */
 }
 
 /* Rigid and Flexible Slot Styling */
@@ -6381,7 +6670,7 @@ a {
 .screen-ancient-game {
   min-height: 100vh;
   background: linear-gradient(135deg, #FFF8E7 0%, #FFF3D6 30%, #FFE8C0 100%);
-  padding: 1rem;
+  padding: 0; /* Remove padding to allow full-width header */
 }
 
 .vy-container {
@@ -10586,3 +10875,7 @@ a {
   align-items: center;
   gap: 0.5rem;
 }
+/* --- AI Chat Bubble Enhancements --- */
+.agent-speech-bubble { max-height: 220px !important; overflow-y: auto !important; padding-right: 12px !important; scrollbar-width: thin; scrollbar-color: #C4882A #f0f0f0; }
+.agent-speech-bubble::-webkit-scrollbar { width: 4px; }
+.agent-speech-bubble::-webkit-scrollbar-thumb { background: #C4882A; border-radius: 10px; }

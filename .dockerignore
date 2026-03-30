@@ -10,8 +10,10 @@ db/
 # Dev/build artifacts
 npm-debug.log*
 .npm/
-.env
-.env.*
+# .env files are now INCLUDED for 'Zero-Config' baking 
+# (Remember to keep your repository PRIVATE)
+!.env
+!.env.*
 !env.local
 
 # Version control

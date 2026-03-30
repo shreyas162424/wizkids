@@ -161,29 +161,31 @@ const GKMentorApp = (() => {
   function renderLogin() {
     return `
       <div class="screen screen-login">
-        <div class="login-card">
-          <div class="login-logo">
-            <img src="img/wizkids-logo.png" alt="Wizkids Gurukul" style="width: 100px; height: auto; margin-bottom: 0.5rem;" />
-            <h1 class="logo-title">Wizkids Gurukul</h1>
-            <p class="logo-subtitle">Mentor Dashboard</p>
+        <div class="login-center-wrapper">
+          <div class="login-card">
+            <div class="login-logo">
+              <img src="img/wizkids-logo.png" alt="Wizkids Gurukul" style="width: 100px; height: auto; margin-bottom: 0.5rem;" />
+              <h1 class="logo-title">Wizkids Gurukul</h1>
+              <p class="logo-subtitle">Mentor Dashboard</p>
+            </div>
+            <form id="mentor-login-form" class="login-form">
+              <div class="form-group">
+                <label for="username">Mentor Username</label>
+                <input type="text" id="username" placeholder="Enter mentor username"
+                  autocomplete="off" value="mentor" />
+              </div>
+              <div class="form-group">
+                <label for="password">Password</label>
+                <input type="password" id="password" placeholder="Enter password" value="mentor123" />
+              </div>
+              <div id="login-error" class="error-msg hidden"></div>
+              <button type="submit" class="btn btn-primary btn-full">
+                Enter Mentor Dashboard 🎓
+              </button>
+            </form>
+            <p class="login-hint">Demo: mentor / mentor123</p>
+            <p class="login-hint"><a href="start.html" class="back-link">← Back to Home</a></p>
           </div>
-          <form id="mentor-login-form" class="login-form">
-            <div class="form-group">
-              <label for="username">Mentor Username</label>
-              <input type="text" id="username" placeholder="Enter mentor username"
-                autocomplete="off" value="mentor" />
-            </div>
-            <div class="form-group">
-              <label for="password">Password</label>
-              <input type="password" id="password" placeholder="Enter password" value="mentor123" />
-            </div>
-            <div id="login-error" class="error-msg hidden"></div>
-            <button type="submit" class="btn btn-primary btn-full">
-              Enter Mentor Dashboard 🎓
-            </button>
-          </form>
-          <p class="login-hint">Demo: mentor / mentor123</p>
-          <p class="login-hint"><a href="start.html" class="back-link">← Back to Home</a></p>
         </div>
       </div>`;
   }
@@ -313,7 +315,7 @@ const GKMentorApp = (() => {
           </div>
           <div class="sc-stat">
             <span class="sc-stat-label">XP</span>
-            <span class="sc-stat-val val-glow">${student.xp || 0}</span>
+            <span class="sc-stat-val val-glow">${student.totalXP || 0}</span>
           </div>
           <div class="sc-stat">
             <span class="sc-stat-label">Topics</span>
@@ -624,7 +626,7 @@ const GKMentorApp = (() => {
                         <span class="mas-group-label" style="color:#b91c1c;">⚠️ Score Management</span>
                       </div>
                       <div style="font-size:0.78rem; color:#6b7280; margin-bottom:0.75rem;">
-                        Clears all subtopic scores, assessment attempts, and completion markers for this student. This cannot be undone.
+                        Clears all XP (Prana), Levels, subtopic scores, assessment attempts, and completion markers for this student. This cannot be undone.
                       </div>
                       <button class="mas-btn-danger" onclick="GKMentorApp.clearAllScores('${id}')">
                         🗑️ Clear All Scores
@@ -706,7 +708,7 @@ const GKMentorApp = (() => {
         </div>
 
         <div class="header-right">
-          <button onclick="GKMentorApp.toggleMute(this)" class="btn-mute-toggle" style="margin-right: 1rem;" title="Toggle Voice Audio">
+          <button onclick="GKMentorApp.toggleMute(this)" class="gk-voice-toggle" style="margin-right: 1rem;" title="Toggle Voice Audio">
             ${GKVoice.isEnabled() ? '🔊' : '🔇'}
           </button>
           <div class="mentor-profile-brief">
@@ -867,7 +869,7 @@ const GKMentorApp = (() => {
     const student = state.students[userId];
     const name = student ? (student.displayName || userId) : userId;
     const confirmed = window.confirm(
-      `Clear ALL scores for ${name}?\n\nThis will erase:\n• All subtopic scores\n• All assessment attempts\n• All completion markers\n\nThis cannot be undone.`
+      `Clear ALL data for ${name}?\n\nThis will erase:\n• Total XP (Prana) & Level\n• All subtopic scores\n• All assessment attempts\n• All completion markers\n\nThis cannot be undone.`
     );
     if (!confirmed) return;
 
@@ -1004,7 +1006,7 @@ const GKMentorApp = (() => {
       pq: student.pq || 'N/A',
       eq: student.eq || 'N/A',
       level: student.level || 1,
-      xp: student.xp || 0,
+      xp: student.totalXP || 0,
       moods: moods.slice(-5),
       lastFeedback: lastFeedback,
       persona: student.persona || 'General learner',

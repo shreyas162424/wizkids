@@ -1,42 +1,36 @@
 # ============================================================
-# Gurukul WizKids — Dockerfile
-# Multi-stage build: install native deps, then copy lean image.
+# Gurukul WizKids — Production-ready Dockerfile
+# Lean Node 22 image (using built-in node:sqlite).
 # ============================================================
 
-# ── Stage 1: build (has Python + gcc needed by better-sqlite3) ──────────────
-FROM node:20-alpine AS builder
+FROM node:22-alpine
 
-# better-sqlite3 is a native Node add-on — needs build tools
-RUN apk add --no-cache python3 make g++
-
+# Set working directory
 WORKDIR /app
 
-# Install dependencies (ci = exact versions from package-lock.json)
+# Copy package files first (better caching)
 COPY package*.json ./
+
+# Install production dependencies
 RUN npm install --omit=dev --no-audit --no-fund
 
-# ── Stage 2: runtime (lean image, no build tools) ────────────────────────────
-FROM node:20-alpine
-
-WORKDIR /app
-
-# Copy compiled node_modules from builder stage
-COPY --from=builder /app/node_modules ./node_modules
-
-# Copy application source
+# Copy application code
 COPY . .
 
-# Create the DB persistence directory.
-# This directory is volume-mounted at runtime so the SQLite file
-# survives container restarts.
+# [DEMO-READY] Bake the API key for Zero-Config "Pull & Run"
+# WARNING: Keep your Docker Hub repository PRIVATE to protect your key!
+COPY .env /app/.env
+
+# Create DB directory for SQLite
 RUN mkdir -p /app/db
 
-# App listens on 3000
-EXPOSE 3001
+# Expose port 3000
+EXPOSE 3000
 
-# Env defaults (can be overridden in docker-compose or docker run -e)
+# Environment variables
 ENV NODE_ENV=production \
-    PORT=3001 \
+    PORT=3000 \
     DB_DIR=/app/db
 
+# Start the server
 CMD ["node", "server/index.js"]

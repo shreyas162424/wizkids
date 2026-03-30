@@ -255,31 +255,63 @@ const GKApp = (() => {
     return (typeof msgSource === 'function') ? msgSource() : msgSource;
   }
 
+  function krishnaAvatarFor(screen) {
+    if (state.activeNotification && state.activeNotification.text && state.activeNotification.text.includes('XP')) return 'krishna-happy.png';
+    switch (screen) {
+      case 'dashboard':
+      case 'modules': return 'krishna-happy.png';
+      case 'mood': return 'krishna-thinking.png';
+      case 'learning':
+      case 'ancientGame': return 'krishna-guide.png';
+      case 'subtopics': return 'krishna-guide.png';
+      case 'assessment': return 'krishna-concerned.png';
+      case 'feedback':
+      case 'subtopicFeedback':
+      case 'moduleFeedback': return 'krishna-concerned.png';
+      case 'reviewRequest': return 'krishna-happy.png';
+      case 'summary': return 'krishna-happy.png';
+      default: return 'krishna-guide.png';
+    }
+  }
+
   function _agentHtml(screen) {
+    if (screen === 'login') return ''; // Krishna should not be shown on the login page
     const msg = krishnaInitiatorFor(screen);
-    const hasBg = false; // Remove white background from all screens for cleaner integration
+    const avatarFilename = krishnaAvatarFor(screen);
+    const hasBg = false; 
 
     return `
-      <div class="agent-left-pane ${hasBg ? 'has-agent-bg' : ''}">
+      <div class="agent-left-pane ${hasBg ? 'has-agent-bg' : ''}" id="krishna-agent-pane">
+        <div class="dhyana-backdrop" onclick="GKApp.toggleDhyanaMode()"></div>
         <div class="agent-inner-presence">
-          <div class="agent-avatar-wrap">
-            <img src="img/krishna-guide.png" alt="Krishna" class="agent-avatar"
-              onclick="GKVoice.replay()" onerror="this.src='img/krishna-default.png'" />
+          <div class="dhyana-header-glow"></div>
+          <div class="agent-avatar-wrap" onclick="GKApp.toggleDhyanaMode()" title="Enter Dhyana Mode">
+            <div class="prana-pulse" id="krishna-prana-pulse"></div>
+            <img src="img/${avatarFilename}" alt="Krishna" class="agent-avatar"
+              onerror="this.src='img/krishna-guide.png'" />
           </div>
 
-          <div class="agent-speech-bubble">
-            ${msg}
-            <button class="krishna-voice-toggle" onclick="GKVoice.toggle(this)" title="Toggle Krishna voice"
-              style="background:none;border:none;cursor:pointer;font-size:1rem;opacity:0.65;padding:0.15rem 0.3rem;float:right;line-height:1;" aria-label="Toggle voice">${GKVoice.isEnabled() ? '🔊' : '🔇'}</button>
+          <div class="agent-speech-bubble" onclick="GKApp.toggleDhyanaMode()">
+            <div class="bubble-content" id="krishna-bubble-content">
+              ${GKApp.parseMD(msg)}
+            </div>
+            <div class="bubble-actions">
+              <button class="dhyana-expand-btn" title="Expand for Deep Focus">⛶</button>
+              <button class="gk-voice-toggle" onclick="event.stopPropagation(); GKVoice.toggle(this)" title="Toggle Krishna voice"
+                style="background:none;border:none;cursor:pointer;font-size:1.1rem;opacity:0.65;padding:0.15rem 0.3rem;line-height:1;" aria-label="Toggle voice">${GKVoice.isEnabled() ? '🔊' : '🔇'}</button>
+            </div>
           </div>
 
           <div class="agent-inline-chat" style="margin-top: 15px;">
             <input type="text" id="agent-query-input" class="agent-inline-input" placeholder="Ask Krishna..."
-              onkeydown="if(event.key==='Enter') GKApp.sendAgentQuery()">
-            <button class="agent-inline-send" onclick="GKApp.sendAgentQuery()" title="Send">
-              <svg viewBox="0 0 24 24" width="18" height="18" style="flex-shrink: 0;"><path fill="currentColor" d="M2.01 21L23 12L2.01 3L2 10l15 2l-15 2z"/></svg>
+              onkeydown="if(event.key==='Enter') { event.stopPropagation(); GKApp.sendAgentQuery(); }" onclick="event.stopPropagation();">
+            <button class="agent-inline-send" onclick="event.stopPropagation(); GKApp.sendAgentQuery()" title="Send">
+              <svg viewBox="0 0 24 24" width="16" height="16" style="flex-shrink: 0;"><path fill="currentColor" d="M2.01 21L23 12L2.01 3L2 10l15 2l-15 2z"/></svg>
             </button>
           </div>
+          <button class="dhyana-close-btn" onclick="event.stopPropagation(); GKApp.toggleDhyanaMode()" title="Close Dhyana Mode">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
+          </button>
         </div>
       </div>`;
   }
@@ -288,11 +320,9 @@ const GKApp = (() => {
   function renderLogin() {
     return `
       <div class="screen screen-login">
-        <div class="screen-agent-row">
-          ${_agentHtml('login')}
-          <div class="agent-pane-spacer"></div>
-          <div class="screen-content-col" style="display: flex; align-items: center; justify-content: center; min-height: 100vh;">
-            <div class="login-card" style="width: 100%; max-width: 420px; margin: 0 auto;">
+        ${renderHeader(false, false)}
+        <div class="login-center-wrapper">
+          <div class="login-card" style="width: 100%; max-width: 420px; margin: 0 auto;">
               <div class="login-logo" style="text-align: center; margin-bottom: 0.8rem;">
                 <img src="img/wizkids-logo.png" alt="Wizkids Logo" style="width:50px; height:auto; margin: 0 auto 0.4rem auto; display: block;" />
                 <h1 class="logo-title" style="font-size: 1.5rem; margin-bottom: 0.2rem; color: #6B3F1A;">Wizkids Gurukul</h1>
@@ -333,8 +363,6 @@ const GKApp = (() => {
 
               <div style="text-align:center; padding: 0.5rem 0;">
                 <p class="login-hint"><a href="start.html" class="back-link" style="color:#C4882A; text-decoration:none; font-weight:600;">← Back to Home</a></p>
-              </div>
-            </div>
           </div>
         </div>
       </div>`;
@@ -345,12 +373,12 @@ const GKApp = (() => {
     if (!state._selectedVibe) state._selectedVibe = 'high_energy';
     return `
       <div class="screen screen-mood">
+        ${renderHeader()}
         <div class="screen-agent-row">
           ${_agentHtml('mood')}
           <div class="agent-pane-spacer"></div>
-          <div class="screen-content-col" style="display: flex; align-items: center; justify-content: center; min-height: 80vh;">
+          <div class="mood-center-wrapper" style="flex:1; display:flex; align-items:center; justify-content:center; padding:1rem;">
             <div class="mood-card">
-              ${renderHeader(false, false)}
 
               <!-- PHASE 1: Mood inputs -->
               <div id="mood-inputs-section">
@@ -513,7 +541,7 @@ const GKApp = (() => {
 
     return `
       <div class="screen screen-ancient-game">
-        ${renderHeader(false, true)}
+        ${renderHeader()}
         <div class="screen-agent-row">
           ${_agentHtml('ancientGame')}
           <div class="agent-pane-spacer"></div>
@@ -1342,7 +1370,7 @@ const GKApp = (() => {
 
     return `
       <div class="screen screen-subtopics">
-        ${renderHeader(true)}
+        ${renderHeader()}
         <div class="screen-agent-row">
           ${_agentHtml('subtopics')}
           <div class="agent-pane-spacer"></div>
@@ -1492,7 +1520,9 @@ const GKApp = (() => {
           ${state.conceptIdx > 0 ? `<button class="btn btn-ghost" onclick="GKApp.prevConcept()">← Back</button>` : ''}
           ${!isLast
         ? `<button class="btn btn-primary" onclick="GKApp.nextConcept()">Next Concept →</button>`
-        : `<button class="btn btn-accent" onclick="GKApp.startGame()">🎮 Play Game & Earn XP!</button>`
+        : (subtopic.game
+          ? `<button class="btn btn-accent" onclick="GKApp.startGame()">🎮 Play Game & Earn XP!</button>`
+          : `<button class="btn btn-accent" onclick="GKApp.afterGame()">✅ Complete Lesson & Earn XP!</button>`)
       }
         </div>
       </div>`;
@@ -1512,6 +1542,18 @@ const GKApp = (() => {
           <button class="btn btn-primary" onclick="GKApp.afterGame()">
             Done! Quick Feedback →
           </button>
+        </div>`;
+    }
+
+    if (!game) {
+      return `
+        <div class="game-card">
+          <div class="game-header">
+            <h2>✅ Lesson Complete</h2>
+            <p class="game-instructions">You've finished all concepts for this subtopic!</p>
+          </div>
+          <p class="mt-md">Take a moment to reflect on what you've learned. Ready to move on?</p>
+          <button class="btn btn-primary mt-lg" onclick="GKApp.afterGame()">Finish Subtopic →</button>
         </div>`;
     }
 
@@ -2304,7 +2346,9 @@ const GKApp = (() => {
             <div style="font-size:0.75rem; color:#888; margin-top:2px;">Personalized Learning</div>
           </div>
         </div>
-        ${profileHtml}
+        <div style="display:flex; align-items:center;">
+          ${profileHtml}
+        </div>
       </header>`;
   }
 
@@ -2482,7 +2526,7 @@ const GKApp = (() => {
           </div>
           <div class="krishna-speech-bubble">
             ${gameMsg}
-            <button class="krishna-voice-toggle" onclick="GKVoice.toggle(this)" title="Toggle Krishna voice"
+            <button class="gk-voice-toggle" onclick="GKVoice.toggle(this)" title="Toggle Krishna voice"
               style="background:none;border:none;cursor:pointer;font-size:1rem;opacity:0.65;padding:0.15rem 0.3rem;float:right;line-height:1;" aria-label="Toggle voice">${GKVoice.isEnabled() ? '🔊' : '🔇'}</button>
           </div>
         </div>`;
@@ -4408,13 +4452,24 @@ const GKApp = (() => {
       await GK_AI_CONFIG.ensureLoaded();
 
       // 2. Show dynamic loading state
-      const toggleHtml = `<button class="krishna-voice-toggle" onclick="GKVoice.toggle(this)" title="Toggle Krishna voice" style="background:none;border:none;cursor:pointer;font-size:1rem;opacity:0.65;padding:0.15rem 0.3rem;float:right;line-height:1;" aria-label="Toggle voice">${GKVoice.isEnabled() ? '🔊' : '🔇'}</button>`;
-      bubble.innerHTML = `<span class="sparkle-rotate">✨</span> <span class="thinking-dots">Acharya is reflecting</span> ${toggleHtml}`;
+      const toggleHtml = `<button class="krishna-voice-toggle" onclick="event.stopPropagation(); GKVoice.toggle(this)" title="Toggle Krishna voice" style="background:none;border:none;cursor:pointer;font-size:1.1rem;opacity:0.65;padding:0.15rem 0.3rem;line-height:1;" aria-label="Toggle voice">${GKVoice.isEnabled() ? '🔊' : '🔇'}</button>`;
+      const actionsHtml = `
+        <div class="bubble-actions">
+          <button class="dhyana-expand-btn" title="Expand for Deep Focus">⛶</button>
+          ${toggleHtml}
+        </div>
+      `;
+
+      bubble.innerHTML = `<div class="bubble-content" id="krishna-bubble-content"><span class="sparkle-rotate">✨</span> <span class="thinking-dots">Acharya is reflecting</span></div>${actionsHtml}`;
       
-      // 3. Clear input
+      // 3. Update avatar to thinking state
+      const avatarImg = document.querySelector('.agent-avatar');
+      if (avatarImg) avatarImg.src = 'img/krishna-thinking.png';
+
+      // 4. Clear input
       input.value = '';
 
-      // 4. Gather context
+      // 5. Gather context
       const m = (state.modules && state.modules[state.activeModuleIdx]) ? state.modules[state.activeModuleIdx] : {};
       const context = {
         userName: state.user.displayName,
@@ -4430,22 +4485,55 @@ const GKApp = (() => {
 
       try {
         const response = await GKAITutor.respond(text, context);
-        bubble.innerHTML = `${response} ${toggleHtml}`;
+        // Restoring avatar to happy/engaged
+        if (avatarImg) avatarImg.src = 'img/krishna-happy.png';
+        // Use robust parser to render Markdown
+        const formattedResponse = GKApp.parseMD(response);
+        bubble.innerHTML = `<div class="bubble-content" id="krishna-bubble-content">${formattedResponse}</div>${actionsHtml}`;
         GKVoice.speak(response);
         if (!state.chatHistory) state.chatHistory = [];
         state.chatHistory.push({ role: 'user', text });
         state.chatHistory.push({ role: 'ai', text: response });
       } catch (e) {
+        if (avatarImg) avatarImg.src = 'img/krishna-concerned.png';
         console.error("Krishna Chat Error:", e);
         bubble.innerHTML = `
-          <div>I apologize, my ethereal connection is fading. Ask me again shortly! 🙏 ${toggleHtml}</div>
-          <div class="chat-error-notice">
-            <span>⚠️</span> <span>System Insight: ${e.message}</span>
-          </div>`;
+          <div class="bubble-content" id="krishna-bubble-content">
+            <div>I apologize, my ethereal connection is fading. Ask me again shortly! 🙏</div>
+            <div class="chat-error-notice">
+              <span>⚠️</span> <span>System Insight: ${e.message}</span>
+            </div>
+          </div>
+          ${actionsHtml}`;
       }
     },
     toggleMute: (btn) => {
       GKVoice.toggle(btn);
+    },
+    toggleDhyanaMode: () => {
+      const pane = document.getElementById('krishna-agent-pane');
+      if (pane) {
+        pane.classList.toggle('dhyana-active');
+        const isDhyana = pane.classList.contains('dhyana-active');
+        if (isDhyana) {
+           // Auto-replay on open if voice enabled
+           GKVoice.replay();
+        }
+      }
+    },
+    toggleMute: (btn) => {
+      GKVoice.toggle(btn);
+    },
+    // Robust Markdown Parser for Krishna 2.0
+    parseMD: (text) => {
+      if (!text) return "";
+      try {
+        if (typeof marked === 'function') return marked(text);
+        if (typeof marked !== 'undefined' && marked.parse) return marked.parse(text);
+      } catch (e) {
+        console.error("Markdown Parser Error:", e);
+      }
+      return text;
     }
   };
 })();
@@ -4453,6 +4541,7 @@ const GKApp = (() => {
 // Boot the app when DOM is ready.
 // GKDatabase.init() is async (sql.js WASM load); everything after is synchronous.
 document.addEventListener('DOMContentLoaded', async () => {
+  console.log("🕉️ Gurukul: Krishna 2.0 Engine Loaded (Formatting + Brevity)");
   await GKDatabase.init();
   GKApp.init();
 });

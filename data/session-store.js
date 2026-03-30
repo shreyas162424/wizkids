@@ -93,12 +93,12 @@ const GKStore = (() => {
       // Identity
       id:             user.id,
       username:       user.username,
-      displayName:    user.display_name,
+      displayName:    user.displayName,
       grade:          user.grade,
       avatar:         user.avatar,
       photo:          user.photo,
-      joinDate:       user.join_date,
-      preferredStyle: user.preferred_style,
+      joinDate:       user.joinDate,
+      preferredStyle: user.preferredStyle,
       persona:        user.persona,
       role:           user.role,
       // XP & gamification
@@ -548,8 +548,14 @@ const GKStore = (() => {
     _c.topicCompletions[userId]    = [];
     _c.quickCheckResults[userId]   = [];
     _c.demoOverrides[userId]       = {};
+    _c.mentorRewards[userId]       = [];
+    
+    // Reset total XP and Level
+    _c.xp[userId] = { totalXP: 0, level: 1, isPromoted: false, promotedAt: null };
+    
     const sess = _c.activeSessions[userId];
     if (sess) sess.xpEarned = 0;
+    
     _post('/api/progress/reset-all', { userId });
     _triggerSync();
   }
@@ -601,6 +607,30 @@ const GKStore = (() => {
 
   function getHolisticScores(userId) {
     return _c.holisticScores[userId] || null;
+  }
+
+  // ── Extra Persistence (Badges & Streaks) ──────────────────────────────────
+  
+  function getBadges(userId) {
+    const extra = _c.userExtras[userId] || {};
+    return extra.badges || [];
+  }
+
+  function saveBadges(userId, badges) {
+    const extra = _ensureObj(_c.userExtras, userId);
+    extra.badges = badges;
+    saveUserProfile(userId, { badges });
+  }
+
+  function getStreak(userId) {
+    const extra = _c.userExtras[userId] || {};
+    return extra.streak || { count: 0, lastDate: "" };
+  }
+
+  function saveStreak(userId, streakData) {
+    const extra = _ensureObj(_c.userExtras, userId);
+    extra.streak = streakData;
+    saveUserProfile(userId, { streak: streakData });
   }
 
   // ── Personalized Learning Paths ───────────────────────────────────────────
@@ -675,6 +705,7 @@ const GKStore = (() => {
     submitMentorEvaluation, resetTopics, resetAllScores,
     saveSubtopicScore, getSubtopicScores,
     saveHolisticScores, getHolisticScores,
+    getBadges, saveBadges, getStreak, saveStreak,
     saveMentorMoodLog, getMentorMoodLog,
     getStudentLearningPath, getStudentLearningPathDetails,
     getAllLearningPaths, getStudentTopicIds

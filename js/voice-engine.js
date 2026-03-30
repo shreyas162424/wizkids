@@ -37,7 +37,8 @@ const GKVoice = (() => {
     return (str || '')
       .replace(/<[^>]*>/g, ' ')                      // strip HTML tags
       .replace(/[\u{1F300}-\u{1FAFF}]/gu, '')        // strip emoji
-      .replace(/[🕉️🙏🌸📚🎓✅⭐🌟💫✨🏆🎮→]/g, '')
+      .replace(/[🕉️🙏🌸📚🎓✅⭐🌟💫✨🏆🎮→]/gu, '')
+      .replace(/[*_#~`=+-]/g, ' ')                   // strip markdown and math symbols
       .replace(/\s{2,}/g, ' ')
       .trim();
   }
@@ -45,10 +46,14 @@ const GKVoice = (() => {
   function _avatarOn()  {
     document.querySelectorAll('.krishna-img-box,.krishna-initiator-wrap,.agent-avatar-wrap,.narayana-avatar-container')
       .forEach(el => el.classList.add('agent-speaking'));
+    document.querySelectorAll('.prana-pulse')
+      .forEach(el => el.classList.add('pulsing'));
   }
   function _avatarOff() {
     document.querySelectorAll('.krishna-img-box,.krishna-initiator-wrap,.agent-avatar-wrap,.narayana-avatar-container')
       .forEach(el => el.classList.remove('agent-speaking'));
+    document.querySelectorAll('.prana-pulse')
+      .forEach(el => el.classList.remove('pulsing'));
   }
 
   // ── Core speak — MUST be called synchronously from user gesture ──
@@ -86,7 +91,10 @@ const GKVoice = (() => {
     speak(_lastText || 'Namaste! I am here to guide you.');
   }
 
-  // Toggle voice on/off — updates all buttons on the page
+  /**
+   * Toggle voice on/off — updates all buttons on the page.
+   * Standardized class: .gk-voice-toggle
+   */
   function toggle() {
     _enabled = !_enabled;
     _ls.set('gk_voice', _enabled ? 'on' : 'off');
@@ -98,10 +106,41 @@ const GKVoice = (() => {
       _avatarOff();
     }
 
-    const icon = _enabled ? '🔊' : '🔇';
-    document.querySelectorAll('.krishna-voice-toggle').forEach(b => b.textContent = icon);
+    _updateAllIcons();
 
     if (_enabled) replay();
+  }
+
+  /**
+   * Internal helper to update all mute icons across the page.
+   */
+  function _updateAllIcons() {
+    const icon = _enabled ? '🔊' : '🔇';
+    document.querySelectorAll('.gk-voice-toggle, .krishna-voice-toggle, .btn-mute-toggle')
+      .forEach(b => {
+        if (b.tagName === 'BUTTON' || b.tagName === 'SPAN' || b.tagName === 'DIV') {
+          b.textContent = icon;
+        }
+      });
+  }
+
+  // ── Sync with other tabs ───────────────────────────────────────────────────
+  if (typeof window !== 'undefined') {
+    window.addEventListener('storage', (e) => {
+      if (e.key === 'gk_voice') {
+        const newVal = e.newValue !== 'off';
+        if (newVal !== _enabled) {
+          _enabled = newVal;
+          if (!_enabled) {
+            if (typeof speechSynthesis !== 'undefined') {
+              try { speechSynthesis.cancel(); } catch(_) {}
+            }
+            _avatarOff();
+          }
+          _updateAllIcons();
+        }
+      }
+    });
   }
 
   function isEnabled()  { return _enabled; }

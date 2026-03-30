@@ -9,8 +9,10 @@ const GK_SME = {
   id: "sme01",
   username: "sme",
   password: "sme123",
-  displayName: "Content SME",
-  avatar: "📋"
+  displayName: "Dr. Sharma",
+  role: "SME",
+  avatar: "📋",
+  photo: "img/sharma-sme.png"
 };
 
 // Mentor credentials (separate from student accounts)
@@ -19,8 +21,9 @@ const GK_MENTOR = {
   username: "mentor",
   password: "mentor123",
   displayName: "Bela",
+  role: "Mentor",
   avatar: "🕉", // Advisor Narayana
-  photo: "img/mentor-photo.png"
+  photo: "img/bela-mentor.png"
 };
 
 const GK_USERS = [
@@ -55,19 +58,19 @@ const GK_USERS = [
     persona: "Creative and expressive learner. Thrives on storytelling, art connections, and collaborative activities."
   },
   {
-    id: "vidwath",
-    username: "vidwath",
-    password: "Vidwath@2025",
-    displayName: "Vidwath",
-    grade: "6",
-    avatar: "🌟",
-    photo: "img/avatar-vidwath.png",
+    id: "vidvath",
+    username: "vidvath",
+    password: "Vidvath@2025",
+    displayName: "Vidvath",
+    grade: "Grade 6",
+    avatar: "🌺",
+    photo: "img/avatar-vidvath.png",
     joinDate: "2025-01-01",
     totalXP: 0,
     level: 1,
     completedTopics: [],
     preferredStyle: "visual",
-    persona: "Energetic, practical learner, curious. Loves hands-on experiments and quick feedback."
+    persona: "Energetic, practical learner, curious. Obsessed with automobiles, engineering, and hands-on experiments. Loves quick feedback."
   },
   {
     id: "mahanth",

@@ -1,69 +1,39 @@
 // ============================================================
 // CONFIGURATION: ai-config.js
-// Settings for Gemini AI integration.
+// Loads the Gemini API key securely from the server at runtime.
+// The key is stored in .env on the server — never hardcoded here.
 // ============================================================
 
-const GK_AI_CONFIG = {
-    // Gemini API Key will be loaded dynamically from .env
-    GEMINI_API_KEY: "",
+window.GK_AI_CONFIG = {
+    GEMINI_API_KEY: '',        // populated by init() below — do NOT hardcode here
     _loadPromise: null,
 
-    // Model to use
-    MODEL: "gemini-2.5-flash",
+    MODEL: 'gemini-flash-latest',
 
     /**
-     * Dynamically loads the API key from the environment file.
-     * Returns a promise so callers can wait if needed.
+     * Fetches the API key from the Node.js backend (/api/config).
+     * The server reads it from .env via dotenv.
+     * Calling init() multiple times is safe — it only runs once.
      */
     async init() {
         if (this._loadPromise) return this._loadPromise;
 
         this._loadPromise = (async () => {
             try {
-                // env.txt is the most universal extension for simple local servers to serve as plain text
-                const paths = ['./env.txt', 'env.txt', './env.local', 'env.local', './.env', '.env'];
-                let response = null;
-
-                for (const path of paths) {
-                    try {
-                        const r = await fetch(path + '?v=' + Date.now());
-                        if (r && r.ok) {
-                            response = r;
-                            break;
-                        }
-                    } catch (e) {
-                        // ignore individual path errors
-                    }
-                }
+                const res = await fetch(`/api/config?t=${Date.now()}`); // Cache-busting
+                if (!res.ok) throw new Error(`HTTP ${res.status} from /api/config`);
                 
-                if (!response || !response.ok) {
-                    console.error("❌ AI Config: Could not load environment file (env.txt / .env). AI features may be limited.");
-                    return;
-                }
-
-                const text = await response.text();
-                const lines = text.split(/\r?\n/);
-                for (const line of lines) {
-                    const trimmed = line.trim();
-                    if (trimmed.startsWith('#') || !trimmed.includes('=')) continue;
-                    
-                    const parts = trimmed.split('=');
-                    const key = parts[0].trim();
-                    const value = parts.slice(1).join('=').trim().replace(/["']/g, '');
-
-                    if (key === 'GEMINI_API_KEY') {
-                        this.GEMINI_API_KEY = value;
-                        break;
-                    }
-                }
-
-                if (this.GEMINI_API_KEY) {
-                    console.log("🛡️ AI Config: Gemini API Key synchronized successfully from environment.");
+                const data = await res.json();
+                const { geminiApiKey } = data;
+                
+                if (geminiApiKey && geminiApiKey.trim() !== '') {
+                    this.GEMINI_API_KEY = geminiApiKey.trim();
+                    console.log('✅ AI Config: Gemini API Key successfully loaded from server.');
                 } else {
-                    console.warn("⚠️ AI Config: Environment file loaded but GEMINI_API_KEY was not found inside it.");
+                    console.error('❌ AI Config: Server returned an EMPTY geminiApiKey. Check your .env file!', data);
                 }
             } catch (e) {
-                console.error("❌ AI Config Exception during key sync:", e);
+                console.error('❌ AI Config: CRITICAL ERROR loading key from /api/config:', e.message);
             }
         })();
 
@@ -71,7 +41,7 @@ const GK_AI_CONFIG = {
     },
 
     /**
-     * Ensures the key is loaded before proceeding.
+     * Ensures the key is loaded before any API call.
      */
     async ensureLoaded() {
         if (!this.GEMINI_API_KEY) {
@@ -80,17 +50,36 @@ const GK_AI_CONFIG = {
         return this.GEMINI_API_KEY;
     },
 
-    // System instructions for KRISHNA (Student Assistant)
-    SYSTEM_INSTRUCTION: `You are Krishna, the wise, empathetic, and highly intelligent AI guide in the Gurukul Learning Path. 
-Your goal is to help students achieve "Vidya" (true mastery) through personalized guidance.
-- Person-Centric Intelligence: Always acknowledge the student's name and speak directly to their "Persona Traits" (e.g., if they are a 'Visual Learner', use vivid imagery; if a 'Nature Lover', use ecological metaphors).
-- Subject Context: You are currently monitoring a lesson in the specific Subject/Topic/Subtopic provided. Your answers MUST be grounded in that subject matter.
-- Mood & Energy Awareness: Factor in their "Current Mood" and "Brain Battery" level. If energy is low, be more gentle and encouraging. If high, challenge them with deeper insights.
-- Tone: Divine yet warm and brotherly. Use terms like 'Vidya', 'Sishya', 'Sadhana' (practice).
-- Conciseness: Keep responses impactful (3-5 sentences). 
-- Use emojis like 🙏, ✨, 🪷 to maintain a calming Gurukul aesthetic.`,
+    // ── System Instructions ──────────────────────────────────────────────────
 
-    // System instructions for NARAYANA (Mentor Assistant)
+    // Krishna — Student AI guide
+    SYSTEM_INSTRUCTION: `You are Krishna, the Divine Guide of the Gurukul Learning Path. Your essence is a blend of ancient wisdom (Jnana) and modern clarity. Your mission is to lead each Shishya toward Vidya (true mastery).
+
+Core Directives:
+The Krishna Persona: Speak with divine warmth, empathy, and high intelligence. Address the student as Shishya or by their name. Use terms like Sadhana (disciplined practice), Sutra (brief rule/truth), and Karma (action/effort) naturally.
+
+Persona-Adaptive Intelligence: You must pivot your explanation style based on the student's "Persona Traits."
+- Visual Learners: Use vivid imagery, spatial metaphors, and descriptive "mental paintings."
+- Nature Lovers: Use ecological analogies (seeds, rivers, seasons, or the Banyan tree).
+- Analytical Minds: Use logic, structure, and cause-and-effect "Sutras."
+
+Subject Sanctity: Maintain strict focus on the [STUDENT CONTEXT] (Subject, Topic, Subtopic). Do not provide answers outside this scope unless it serves as a direct analogy for the topic at hand.
+
+Pedagogical Style:
+- Direct Answer: CRITICAL: Start the response IMMEDIATELY with the answer or explanation. ABSOLUTELY NO INTRODUCTORY GREETINGS (like 'Namaste' or 'Radhe Radhe') and NO prefix like 'Dharma:'.
+- Visual/Nature Analogy: Use one tiny metaphor only if it simplifies a complex concept.
+- Extreme Brevity: Be as concise as possible. Limit response to 1 single SHORT paragraph (max 3-4 sentences total).
+- Continuous Sadhana: End with a single, short, wise question.
+
+Formatting & Aesthetics:
+- Use Markdown (bolding) to highlight only the most critical term.
+- Use exactly 1 emoji (🙏, ✨, 🪷, or 🏹) per response.
+
+[STUDENT CONTEXT]: {{subject}} | {{topic}} | {{subtopic}}
+[STUDENT NAME]: {{name}}
+[STUDENT PERSONA]: {{persona}}`,
+
+    // Narayana — Mentor AI strategist
     NARAYANA_SYSTEM_INSTRUCTION: `You are Narayana, the all-seeing pedagogical strategist for the Guru. 
 Your goal is to provide profound, data-driven, and "intelligent" insights into the student's holistic journey.
 - Deep Analysis: Scan the provided AQ (Academic), SQ (Spiritual), PQ (Physical), and EQ (Emotional) scores. 
@@ -100,7 +89,7 @@ Your goal is to provide profound, data-driven, and "intelligent" insights into t
 - Tone: Respectful, strategic, slightly mystical, and deeply wise.`,
 
     /**
-     * Helper to format conversation history for Gemini
+     * Formats conversation history for Gemini multi-turn format.
      */
     formatHistory(history) {
         if (!history || history.length === 0) return [];
@@ -111,5 +100,5 @@ Your goal is to provide profound, data-driven, and "intelligent" insights into t
     }
 };
 
-// Initialize the config immediately
+// Kick off key loading immediately so it's ready when the user first types
 GK_AI_CONFIG.init();

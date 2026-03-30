@@ -1,4 +1,5 @@
 'use strict';
+require('dotenv').config(); // Load .env into process.env before anything else
 // ============================================================
 // SERVER: index.js
 // Express entry point for Gurukul.
@@ -17,11 +18,20 @@ const { syncConfig }   = require('./config-loader');
 const apiRoutes = require('./routes');
 
 const PORT    = process.env.PORT || 3000;
+const DB_DIR  = process.env.DB_DIR || path.join(__dirname, '../db');
 const STATIC  = path.resolve(__dirname, '..');  // serve wizkids/ root
 
 // ── Init DB then sync learning-path config ────────────────────────────────────
-initDB();
-syncConfig();   // reads config/learning-paths.json → upserts into SQLite
+try {
+  console.log('[GKServer] Initializing database & syncing curriculum...');
+  initDB(DB_DIR);
+  
+  console.log('[GKServer] Syncing config...');
+  syncConfig();
+} catch (err) {
+  console.error('[GKServer] Startup error:', err);
+  process.exit(1);
+}
 
 // ── Express app ──────────────────────────────────────────────────────────────
 const app = express();
@@ -45,5 +55,5 @@ app.listen(PORT, '0.0.0.0', () => {
   console.log(`[GKServer] Gurukul running on port ${PORT}`);
   console.log(`  Student  → http://localhost:${PORT}/student.html`);
   console.log(`  Mentor   → http://localhost:${PORT}/mentor.html`);
-  console.log(`  API docs → http://localhost:${PORT}/api/init  (GET)`);
+  console.log(`  API docs → http://localhost:${PORT}/api/init`);
 });

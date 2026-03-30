@@ -436,8 +436,6 @@ router.get('/config/file', (req, res) => {
 });
 
 // ── Live State (in-memory, not persisted to DB) ───────────────────────────────
-// Student app POSTs its current UI state on every navigation/concept change.
-// The mirror iframe receives it via SSE and applies it directly — no reload.
 
 const _liveStates = {};
 
@@ -455,6 +453,65 @@ router.get('/live-state/:userId', (req, res) => {
   try {
     res.json({ ok: true, data: _liveStates[req.params.userId] || null });
   } catch (e) { err(res, e); }
+});
+
+// ── Client Config ────────────────────────────────────────────────────────────
+
+router.get('/config', (req, res) => {
+  const key = process.env.GEMINI_API_KEY || '';
+  if (!key) console.warn('[GKRoutes] GEMINI_API_KEY not set in .env');
+  res.json({ geminiApiKey: key });
+});
+
+// ── AI Proxy ─────────────────────────────────────────────────────────────────
+
+router.get('/ai/proxy', (req, res) => res.json({ ok: true, message: 'AI Proxy is active' }));
+
+router.post('/ai/proxy', async (req, res) => {
+  try {
+    const { model, body } = req.body;
+    if (!model || !body) {
+      console.warn('[GKProxy] Missing model or body in request');
+      return res.status(400).json({ ok: false, error: 'model/body required' });
+    }
+
+    const apiKey = process.env.GEMINI_API_KEY;
+    if (!apiKey) {
+      console.error('[GKProxy] GEMINI_API_KEY is missing from .env');
+      return res.status(500).json({ ok: false, error: 'Server AI Key missing' });
+    }
+
+    // v1beta is REQUIRED for gemini-1.5-flash and gemini-1.5-pro
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+    
+    console.log(`[GKProxy] Requesting Gemini (${model})...`);
+    
+    const resp = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
+    });
+
+    console.log(`[GKProxy] Gemini Response Status: ${resp.status}`);
+    
+    const text = await resp.text();
+    let result;
+    try {
+      result = JSON.parse(text);
+    } catch (e) {
+      console.error('[GKProxy] Non-JSON response from Gemini:', text);
+      return res.status(resp.status || 500).json({ ok: false, error: 'Invalid response from AI', raw: text });
+    }
+
+    if (!resp.ok) {
+      console.error('[GKProxy] Gemini Error Payload:', JSON.stringify(result, null, 2));
+    }
+
+    res.status(resp.status).json(result);
+  } catch (e) {
+    console.error('[GKProxy] Critical Proxy Error:', e);
+    res.status(500).json({ ok: false, error: e.message });
+  }
 });
 
 module.exports = router;

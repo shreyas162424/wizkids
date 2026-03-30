@@ -1251,16 +1251,6 @@ const GK_TOPICS = {
                   examples: ["Picking stones from rice → Hand Picking", "Separating husk from grain → Winnowing", "Sieving flour in the kitchen → Sieving", "Getting salt from sea water → Evaporation"]
                 }
               ],
-              game: {
-                type: "mcq-game",
-                title: "Introduction Quiz!",
-                instructions: "Answer 3 questions about Methods of Separation",
-                items: [
-                  { question: "This chapter is about:", options: ["Properties of metals", "Methods of Separation in Everyday Life", "Types of chemicals", "States of matter"], correct: 1, hint: "Think about how we separate mixtures in daily life — rice, water, salt..." },
-                  { question: "Which tool are you asked to open and study from?", options: ["Calculator", "Dictionary", "NotebookLM", "Microscope"], correct: 2, hint: "You are asked to open a special learning tool to study the full chapter." },
-                  { question: "Which of the following is a correct learning rule for this chapter?", options: ["Rush through quickly", "Skip difficult parts", "Go step-by-step and understand each concept", "Only read the headings"], correct: 2, hint: "Good learning means taking your time and understanding each concept with examples." }
-                ]
-              },
               assessment: [
                 { id: "mos-exp1-q1", question: "This chapter is about:", options: ["Properties of metals", "Methods of Separation in Everyday Life", "Types of chemicals", "States of matter"], correct: 1, explanation: "This chapter explores different methods used to separate mixtures in everyday life." },
                 { id: "mos-exp1-q2", question: "Which tool are you asked to open and study from?", options: ["Calculator", "Dictionary", "NotebookLM", "Microscope"], correct: 2, explanation: "You are asked to open NotebookLM and study the full chapter carefully." },
@@ -1301,15 +1291,19 @@ const GK_TOPICS = {
                 title: "Hand Picking Quiz!",
                 instructions: "Answer 3 questions about Hand Picking",
                 items: [
-                  { question: "Hand picking is used when impurities are:", options: ["Too small to see", "Dissolved in water", "Large enough to remove by hand", "Magnetic"], correct: 2, hint: "Hand picking works when you can actually see and grab the unwanted particles." },
-                  { question: "Which of the following is an example of hand picking?", options: ["Filtering tea through a strainer", "Removing stones from rice", "Boiling salt water to get salt", "Using a magnet to pick iron"], correct: 1, hint: "Think of a common kitchen task — sorting through rice before washing it." },
-                  { question: "Hand picking is NOT suitable for mixtures where particles are:", options: ["Large and visible", "Different in colour", "Too fine or tiny to pick", "Heavier than liquid"], correct: 2, hint: "If particles are too small to see clearly, you cannot pick them out by hand." }
+                  { question: "Which property of components is primary to the handpicking method of separation?", options: ["Density", "Magnetic property", "Physical size and visibility", "Solubility"], correct: 2, hint: "Handpicking is used when components are large enough to be easily seen and removed by hand." },
+                  { question: "In which of the following scenarios is handpicking NOT suitable?", options: ["Removing small pebbles from rice grains", "Separating insects from wheat flour", "Separating sugar from a salt mixture", "Removing broken pulses from whole pulses"], correct: 2, hint: "When particle sizes are extremely small and uniform (like sugar and salt), they cannot be individually identified." },
+                  { question: "What is a major disadvantage of the handpicking process?", options: ["It requires expensive machinery", "It is only possible in certain weather conditions", "It is very time-consuming and labor-intensive", "It only works for liquid mixtures"], correct: 2, hint: "Being a manual process, it requires a lot of time and effort." },
+                  { question: "When is the handpicking method most effective?", options: ["When the amount of mixture is very large", "When the quantity of undesirable substances is small", "When the particles are microscopic", "When the components are in a liquid state"], correct: 1, hint: "Manual picking is only practical when the unwanted particles are few." },
+                  { question: "Why is handpicking considered a 'reliable' method for specific mixtures?", options: ["It uses advanced sensors", "It is completely automated", "The person can visually confirm each particle is removed", "It changes the chemical property of the substance"], correct: 2, hint: "Because a human is manually checking, they can be sure it's clean." }
                 ]
               },
               assessment: [
-                { id: "mos-exp2-q1", question: "Hand picking is used when impurities are:", options: ["Too small to see", "Dissolved in water", "Large enough to remove by hand", "Magnetic"], correct: 2, explanation: "Hand picking works when impurities are large and visibly different — big enough to pick out by hand." },
-                { id: "mos-exp2-q2", question: "Which of the following is an example of hand picking?", options: ["Filtering tea through a strainer", "Removing stones from rice", "Boiling salt water to get salt", "Using a magnet to pick iron"], correct: 1, explanation: "Removing stones from rice is the most common everyday example of hand picking." },
-                { id: "mos-exp2-q3", question: "Hand picking is NOT suitable for mixtures where particles are:", options: ["Large and visible", "Different in colour", "Too fine or tiny to pick", "Heavier than liquid"], correct: 2, explanation: "Hand picking fails when particles are too small or fine — other methods like sieving or filtration are needed." }
+                { id: "mos-exp2-q1", question: "Which property of components is primary to the handpicking method of separation?", options: ["Density", "Magnetic property", "Physical size and visibility", "Solubility"], correct: 2, explanation: "Handpicking is used when components are large enough to be easily seen and removed by hand." },
+                { id: "mos-exp2-q2", question: "In which of the following scenarios is handpicking NOT suitable?", options: ["Removing small pebbles from rice grains", "Separating insects from wheat flour", "Separating sugar from a salt mixture", "Removing broken pulses from whole pulses"], correct: 2, explanation: "When particle sizes are extremely small and uniform (like sugar and salt), they cannot be individually identified or picked by hand." },
+                { id: "mos-exp2-q3", question: "What is a major disadvantage of the handpicking process?", options: ["It requires expensive machinery", "It is only possible in certain weather conditions", "It is very time-consuming and labor-intensive", "It only works for liquid mixtures"], correct: 2, explanation: "Being a manual process, it requires a lot of time and effort, making it tiring and tedious for large quantities." },
+                { id: "mos-exp2-q4", question: "When is the handpicking method most effective?", options: ["When the amount of mixture is very large", "When the quantity of undesirable substances is small", "When the particles are microscopic", "When the components are in a liquid state"], correct: 1, explanation: "Manual picking is only practical when the unwanted particles are few enough to be removed without taking excessive time." },
+                { id: "mos-exp2-q5", question: "Why is handpicking considered a 'reliable' method for specific mixtures?", options: ["It uses advanced sensors", "It is completely automated", "The person can visually confirm each particle is removed", "It changes the chemical property of the substance"], correct: 2, explanation: "Because a human is manually checking, they can be completely sure that the undesirable material has been removed." }
               ],
               aiHints: [
                 "Hand picking works best when particles are large and visibly different.",
@@ -1346,15 +1340,19 @@ const GK_TOPICS = {
                 title: "Winnowing Quiz!",
                 instructions: "Answer 3 questions about Winnowing",
                 items: [
-                  { question: "Winnowing uses ___ to separate a mixture.", options: ["Water", "A magnet", "Heat", "Wind or blowing air"], correct: 3, hint: "Think about what farmers use — something natural and free that blows through the air." },
-                  { question: "In winnowing, the lighter particles are:", options: ["Burned away", "Dissolved in water", "Blown away by wind", "Picked up by hand"], correct: 2, hint: "Light objects like husk move easily when air blows — where do they go?" },
-                  { question: "Winnowing is mainly used to separate:", options: ["Salt from sea water", "Iron from sand", "Grain from husk", "Sugar from tea"], correct: 2, hint: "This method is used in farming — think about what is separated after harvesting wheat or rice." }
+                  { question: "The process of winnowing is primarily used to separate components of a mixture that have:", options: ["Different colors", "Different boiling points", "Different weights (lighter vs. heavier)", "Different magnetic strengths"], correct: 2, hint: "Winnowing relies on wind to blow away lightweight particles." },
+                  { question: "During the winnowing of wheat, what happens to the husk?", options: ["It falls vertically down into a heap", "It is carried away by the wind to a distance", "It remains mixed with the wheat grains", "It dissolves into the air"], correct: 1, hint: "Husk is the lighter component — what does wind do to light things?" },
+                  { question: "If there is no natural wind available, how can a farmer still perform winnowing?", options: ["By using a hand-held magnet", "By heating the mixture", "By using an electric fan to create air flow", "By washing the mixture with water"], correct: 2, hint: "Artificial air flow from a fan can substitute for natural wind." },
+                  { question: "What is the traditional purpose of the separated husk after winnowing is complete?", options: ["It is used to make bread", "It is used as fodder (food) for cattle", "It is used as a chemical fertilizer", "It is thrown away as useless waste"], correct: 1, hint: "The separated husk is often used as food for animals like cows." },
+                  { question: "Which of the following is an advantage of modern cereal winnowing machines over the traditional method?", options: ["They require no electricity", "They only work on windy days", "They can process large quantities of cereal quickly", "They are only used for separating pebbles"], correct: 2, hint: "Machines are designed to handle large quantities efficiently." }
                 ]
               },
               assessment: [
-                { id: "mos-exp3-q1", question: "Winnowing uses ___ to separate a mixture.", options: ["Water", "A magnet", "Heat", "Wind or blowing air"], correct: 3, explanation: "Winnowing uses wind or blowing air to separate lighter particles from heavier ones." },
-                { id: "mos-exp3-q2", question: "In winnowing, the lighter particles are:", options: ["Burned away", "Dissolved in water", "Blown away by wind", "Picked up by hand"], correct: 2, explanation: "Lighter particles (like husk) are blown away by the wind, while heavier grains fall in a pile." },
-                { id: "mos-exp3-q3", question: "Winnowing is mainly used to separate:", options: ["Salt from sea water", "Iron from sand", "Grain from husk", "Sugar from tea"], correct: 2, explanation: "Farmers use winnowing to separate grain from husk — the husk is lighter and gets blown away." }
+                { id: "mos-exp3-q1", question: "The process of winnowing is primarily used to separate components of a mixture that have:", options: ["Different colors", "Different boiling points", "Different weights (lighter vs. heavier)", "Different magnetic strengths"], correct: 2, explanation: "Winnowing relies on wind to blow away lightweight particles while heavy particles fall straight down." },
+                { id: "mos-exp3-q2", question: "During the winnowing of wheat, what happens to the husk?", options: ["It falls vertically down into a heap", "It is carried away by the wind to a distance", "It remains mixed with the wheat grains", "It dissolves into the air"], correct: 1, explanation: "Husk is the lighter component, so the wind carries it further away from the heavier grains." },
+                { id: "mos-exp3-q3", question: "If there is no natural wind available, how can a farmer still perform winnowing?", options: ["By using a hand-held magnet", "By heating the mixture", "By using an electric fan to create air flow", "By washing the mixture with water"], correct: 2, explanation: "Artificial air flow from a fan can substitute for natural wind to blow away the lighter components." },
+                { id: "mos-exp3-q4", question: "What is the traditional purpose of the separated husk after winnowing is complete?", options: ["It is used to make bread", "It is used as fodder (food) for cattle", "It is used as a chemical fertilizer", "It is thrown away as useless waste"], correct: 1, explanation: "The separated husk is often used as food (fodder) for animals like cows." },
+                { id: "mos-exp3-q5", question: "Which of the following is an advantage of modern cereal winnowing machines over the traditional method?", options: ["They require no electricity", "They only work on windy days", "They can process large quantities of cereal quickly", "They are only used for separating pebbles"], correct: 2, explanation: "Unlike manual winnowing which is limited by human effort, machines are designed to handle large quantities efficiently." }
               ],
               aiHints: [
                 "Winnowing relies on the difference in weight between particles.",
@@ -1436,9 +1434,9 @@ const GK_TOPICS = {
                 title: "Sedimentation Quiz!",
                 instructions: "Answer 3 questions about Sedimentation, Decantation & Filtration",
                 items: [
-                  { question: "When muddy water is left undisturbed and soil settles at the bottom, it is called:", options: ["Filtration", "Winnowing", "Evaporation", "Sedimentation"], correct: 3, hint: "Heavier particles slowly sink — what is the process called when particles settle to the bottom?" },
-                  { question: "Decantation means:", options: ["Heating a liquid until it evaporates", "Passing liquid through filter paper", "Carefully pouring off the clear liquid without disturbing the sediment", "Using a magnet to separate materials"], correct: 2, hint: "After sedimentation, you carefully pour the clear liquid — this pouring action has a special name." },
-                  { question: "Filtration is used to separate:", options: ["Lighter particles using wind", "Dissolved salts from water", "Insoluble solids from a liquid", "Magnetic substances from sand"], correct: 2, hint: "Filter paper has tiny pores — what kind of particles does it hold back?" }
+                  { question: "When muddy water is left undisturbed and soil settles at the bottom, it is called:", options: ["Filtration", "Winnowing", "Evaporation", "Sedimentation"], correct: 3, hint: "Heavier particles slowly sink to the bottom." },
+                  { question: "Decantation means:", options: ["Heating a liquid until it evaporates", "Passing liquid through filter paper", "Carefully pouring off the clear liquid without disturbing the sediment", "Using a magnet"], correct: 2, hint: "After sedimentation, you carefully pour the clear liquid — this action has a special name." },
+                  { question: "Filtration is used to separate:", options: ["Lighter particles using wind", "Dissolved salts from water", "Insoluble solids from a liquid", "Magnetic substances"], correct: 2, hint: "Filter paper has tiny pores that hold back solid particles." }
                 ]
               },
               assessment: [
@@ -1481,9 +1479,9 @@ const GK_TOPICS = {
                 title: "Evaporation Quiz!",
                 instructions: "Answer 3 questions about Evaporation and Condensation",
                 items: [
-                  { question: "In evaporation, the liquid:", options: ["Freezes into a solid", "Falls to the bottom", "Turns into vapour and escapes into the air", "Becomes magnetic"], correct: 2, hint: "When you heat water on a stove and it disappears — what is happening to the water?" },
-                  { question: "Salt is obtained from sea water by:", options: ["Sieving", "Filtration", "Decantation", "Evaporation"], correct: 3, hint: "Sea water is left in the sun in large flat pans — the water disappears and what is left behind?" },
-                  { question: "Condensation is the reverse of evaporation — in condensation, vapour changes back into:", options: ["Ice", "Gas", "Liquid water", "Solid salt"], correct: 2, hint: "Think of a cold glass on a hot day — water droplets appear on the outside. What is forming?" }
+                  { question: "In evaporation, the liquid:", options: ["Freezes into a solid", "Falls to the bottom", "Turns into vapour and escapes into the air", "Becomes magnetic"], correct: 2, hint: "When you heat water on a stove and it disappears, it turns into vapour." },
+                  { question: "Salt is obtained from sea water by:", options: ["Sieving", "Filtration", "Decantation", "Evaporation"], correct: 3, hint: "Sea water is left in the sun; the water disappears and salt is left behind." },
+                  { question: "Condensation is the reverse of evaporation — in condensation, vapour changes back into:", options: ["Ice", "Gas", "Liquid water", "Solid salt"], correct: 2, hint: "In condensation, water vapour cools down and turns back into liquid water." }
                 ]
               },
               assessment: [
@@ -1526,9 +1524,9 @@ const GK_TOPICS = {
                 title: "Sorting Quiz!",
                 instructions: "Answer 3 questions about Sorting and Magnetic Separation",
                 items: [
-                  { question: "Magnetic separation uses a magnet to separate materials containing:", options: ["Gold", "Sand", "Iron or steel", "Sugar"], correct: 2, hint: "A magnet only attracts certain metals — which common metal is attracted to a magnet?" },
-                  { question: "Which industry commonly uses magnetic separation?", options: ["Bakery", "Salt factories", "Recycling plants", "Dairy farms"], correct: 2, hint: "This industry processes old scrap and waste materials — they use large electromagnets to sort metals." },
-                  { question: "Sorting materials by size, colour, shape or type is called:", options: ["Filtration", "Winnowing", "Evaporation", "Classification or Sorting"], correct: 3, hint: "When you group objects by how they look or what they are, what do you call that process?" }
+                  { question: "Magnetic separation uses a magnet to separate materials containing:", options: ["Gold", "Sand", "Iron or steel", "Sugar"], correct: 2, hint: "A magnet only attracts certain metals like iron and steel." },
+                  { question: "Which industry commonly uses magnetic separation?", options: ["Bakery", "Salt factories", "Recycling plants", "Dairy farms"], correct: 2, hint: "This industry uses large electromagnets to sort scrap metals." },
+                  { question: "Sorting materials by size, colour, shape or type is called:", options: ["Filtration", "Winnowing", "Evaporation", "Classification or Sorting"], correct: 3, hint: "When you group objects by properties, it is called sorting." }
                 ]
               },
               assessment: [

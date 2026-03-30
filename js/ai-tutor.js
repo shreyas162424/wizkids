@@ -68,14 +68,21 @@ const GKAITutor = (() => {
       return getNextHint();
     }
 
-    // 2. Try Gemini API if key exists
-    if (window.GK_AI_CONFIG && GK_AI_CONFIG.GEMINI_API_KEY) {
+    // 2. Try Gemini API
+    if (window.GK_AI_CONFIG) {
+      console.log('🤖 GKAITutor: Attempting Gemini AI for input:', input);
       try {
         const geminiResponse = await callGemini(input, context, persona);
-        if (geminiResponse) return geminiResponse;
+        if (geminiResponse) {
+          console.log('✅ GKAITutor: Received Gemini response.');
+          return geminiResponse;
+        }
+        console.warn('⚠️ GKAITutor: callGemini returned null, falling back...');
       } catch (e) {
-        console.error("Gemini API Error:", e);
+        console.error("❌ GKAITutor: Gemini API Error:", e);
       }
+    } else {
+      console.warn('⚠️ GKAITutor: GK_AI_CONFIG not found, skipping AI.');
     }
 
     // 3. Match keyword responses (Local Fallback)
@@ -92,16 +99,30 @@ const GKAITutor = (() => {
   }
 
   async function callGemini(prompt, context = {}, persona = 'student') {
-    // Ensure config is loaded before checking the key
-    await GK_AI_CONFIG.ensureLoaded();
+    // Ensure config is loaded
+    if (!GK_AI_CONFIG.GEMINI_API_KEY) {
+      await GK_AI_CONFIG.ensureLoaded();
+    }
     
-    if (!GK_AI_CONFIG.GEMINI_API_KEY) return null;
+    if (!GK_AI_CONFIG.GEMINI_API_KEY) {
+      console.error('❌ GKAITutor: Cannot call Gemini - API Key is MISSING in GK_AI_CONFIG.');
+      return null;
+    }
     
-    const url = `https://generativelanguage.googleapis.com/v1/models/${GK_AI_CONFIG.MODEL}:generateContent?key=${GK_AI_CONFIG.GEMINI_API_KEY}`;
+    const apiKey = GK_AI_CONFIG.GEMINI_API_KEY;
+    let url = `https://generativelanguage.googleapis.com/v1beta/models/${GK_AI_CONFIG.MODEL}:generateContent?key=${apiKey}`;
 
-    const systemInstruction = persona === 'mentor' 
+    let systemInstruction = persona === 'mentor' 
       ? (GK_AI_CONFIG.NARAYANA_SYSTEM_INSTRUCTION || GK_AI_CONFIG.SYSTEM_INSTRUCTION)
       : GK_AI_CONFIG.SYSTEM_INSTRUCTION;
+
+    // Apply dynamic placeholder replacements
+    systemInstruction = systemInstruction
+      .replace('{{subject}}', context.subject || 'Learning')
+      .replace('{{topic}}', context.topic || 'Exploring')
+      .replace('{{subtopic}}', context.subtopic || 'General')
+      .replace('{{name}}', context.userName || 'Student')
+      .replace('{{persona}}', context.persona || 'Standard');
 
     // Enrich the context for the AI
     let richerContext = "";
@@ -134,22 +155,61 @@ Persona Traits: ${context.persona || 'Standard'}
 `;
     }
 
-    // Prepare message contents (History + Current Prompt)
-    const historyParts = GK_AI_CONFIG.formatHistory(context.history || []);
-    const currentMessage = {
+    // Prepare message contents
+    let historyParts = GK_AI_CONFIG.formatHistory(context.history || []);
+
+    // Gemini STRICT requirements:
+    // 1. First message MUST be 'user'
+    // 2. Roles MUST alternate (user, model, user, model...)
+    // 3. System instruction must be injected clearly.
+    
+    // Remove any leading 'model' messages
+    while (historyParts.length > 0 && historyParts[0].role !== 'user') {
+      historyParts.shift();
+    }
+    // Ensure alternating roles and no consecutive duplicates
+    const cleanedHistory = [];
+    let lastRole = null;
+    for (const part of historyParts) {
+      if (part.role !== lastRole) {
+        cleanedHistory.push(part);
+        lastRole = part.role;
+      }
+    }
+    historyParts = cleanedHistory;
+
+    // If the last message in history is 'user', then we can't add our new 'user' message directly.
+    if (historyParts.length > 0 && historyParts[historyParts.length - 1].role === 'user') {
+      historyParts.pop(); 
+    }
+
+    // 3. Construct the 'contents' array with alternating roles
+    const contents = [...historyParts];
+    const userPromptText = `${richerContext}\n\nUser asks: ${prompt}`;
+    
+    contents.push({
       role: "user",
-      parts: [{ text: systemInstruction + "\n" + richerContext + "\n\nUser asks: " + prompt }]
-    };
+      parts: [{ text: userPromptText }]
+    });
 
     const body = {
-      contents: [...historyParts, currentMessage],
-      generationConfig: {
-        maxOutputTokens: 350,
-        temperature: 0.7
+      model: GK_AI_CONFIG.MODEL,
+      body: {
+        system_instruction: {
+          parts: [{ text: systemInstruction }]
+        },
+        contents,
+        generationConfig: {
+          maxOutputTokens: 2048,
+          temperature: 0.7
+        }
       }
     };
 
-    const response = await fetch(url, {
+    // PROXY FIX: Call our own server instead of Google directly (bypasses browser blocks)
+    console.log("📤 Sending to AI Proxy:", JSON.stringify(body, null, 2));
+
+    const response = await fetch('/api/ai/proxy', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body)
@@ -160,8 +220,30 @@ Persona Traits: ${context.persona || 'Standard'}
       console.error("❌ Gemini API Detailed Error:", {
         status: response.status,
         statusText: response.statusText,
-        error: errorBody
+        error: JSON.stringify(errorBody, null, 2)
       });
+      
+      // AUTO-FALLBACK: Try other models if first one fails with 404
+      if (response.status === 404) {
+        const fallbacks = [
+          'gemini-flash-latest', 'gemini-pro-latest', 'gemini-2.0-flash'
+        ];
+        // Find the next model we haven't tried yet in this chain
+        const currentIndex = fallbacks.indexOf(GK_AI_CONFIG.MODEL);
+        const nextModel = fallbacks[currentIndex + 1];
+        
+        if (nextModel) {
+          console.warn(`🔄 GKAITutor: 404 detected for ${GK_AI_CONFIG.MODEL}. Retrying with ${nextModel}...`);
+          const oldModel = GK_AI_CONFIG.MODEL;
+          GK_AI_CONFIG.MODEL = nextModel;
+          try {
+            return await callGemini(prompt, context, persona);
+          } finally {
+            GK_AI_CONFIG.MODEL = oldModel; 
+          }
+        }
+      }
+      
       throw new Error(`API request failed with status ${response.status}`);
     }
 
@@ -170,7 +252,13 @@ Persona Traits: ${context.persona || 'Standard'}
       console.error("❌ Gemini API: No candidates returned in response.", data);
       return null;
     }
-    return data.candidates[0].content.parts[0].text;
+
+    const firstCandidate = data.candidates[0];
+    const aiText = firstCandidate.content.parts[0].text;
+    console.log('📝 GKAITutor FULL AI RESPONSE:', aiText);
+    console.log('🔍 GKAITutor Finish Reason:', firstCandidate.finishReason);
+
+    return aiText;
   }
 
   function getWelcomeMessage(subtopicName) {

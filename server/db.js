@@ -13,7 +13,7 @@
 const path     = require('path');
 const fs       = require('fs');
 const vm       = require('vm');
-const Database = require('better-sqlite3');
+const { DatabaseSync: Database } = require('node:sqlite');
 
 // DB_PATH can be overridden by env var so Docker can volume-mount a dedicated dir.
 // Default (local dev): <project>/db/gurukul.sqlite
@@ -331,16 +331,15 @@ const SCHEMA = `
 // ── Seed ─────────────────────────────────────────────────────────────────────
 
 function _seed() {
-  // Only seed if users table is empty
-  const count = _db.prepare(`SELECT COUNT(*) AS n FROM users`).get();
-  if (count.n > 0) return;
-
-  console.log('[GKServer/db] seeding reference data...');
+  console.log('[GKServer/db] checking reference data...');
 
   // --- Users ---
-  const { GK_USERS, GK_MENTOR, GK_SME } = _loadDataFile('users.js', [
-    'GK_USERS', 'GK_MENTOR', 'GK_SME'
-  ]);
+  const userCount = _db.prepare(`SELECT COUNT(*) AS n FROM users`).get();
+  if (userCount.n === 0) {
+    console.log('[GKServer/db] seeding initial users...');
+    const { GK_USERS, GK_MENTOR, GK_SME } = _loadDataFile('users.js', [
+      'GK_USERS', 'GK_MENTOR', 'GK_SME'
+    ]);
 
   const insUser = _db.prepare(`
     INSERT OR IGNORE INTO users
@@ -372,25 +371,26 @@ function _seed() {
         insXP.run({ id: u.id, xp: u.totalXP || 0 });
       }
     });
-  });
-  seedUsers();
+    });
+    seedUsers();
+  }
 
   // --- Curriculum ---
   const { GK_TOPICS } = _loadDataFile('topics.js', ['GK_TOPICS']);
 
   const insSubj = _db.prepare(`
-    INSERT OR IGNORE INTO subjects (id, name, icon, color, type, quotient, sort_order)
+    INSERT OR REPLACE INTO subjects (id, name, icon, color, type, quotient, sort_order)
     VALUES (@id,@name,@icon,@color,@type,@quotient,@sort_order)
   `);
   const insTopic = _db.prepare(`
-    INSERT OR IGNORE INTO topics
+    INSERT OR REPLACE INTO topics
       (id, subject_id, name, page_title, description, icon,
        xp, mandatory, module_type, sort_order)
     VALUES (@id,@subject_id,@name,@page_title,@description,@icon,
             @xp,@mandatory,@module_type,@sort_order)
   `);
   const insST = _db.prepare(`
-    INSERT OR IGNORE INTO subtopics
+    INSERT OR REPLACE INTO subtopics
       (id, topic_id, name, lesson_prefix, subtopic_type, mandatory, xp,
        description, sort_order,
        resources_json, concepts_json, game_json, assessment_json, ai_hints_json)
@@ -401,6 +401,7 @@ function _seed() {
 
   const seedCurriculum = _db.transaction(() => {
     (GK_TOPICS.subjects || []).forEach((subj, si) => {
+      console.log(`[GKServer/db] syncing subject: ${subj.id}`);
       insSubj.run({
         id: subj.id, name: subj.name, icon: subj.icon || null,
         color: subj.color || null, type: subj.type || null,
@@ -444,6 +445,7 @@ function _seed() {
         });
       });
     });
+    console.log('[GKServer/db] Curriculum sync complete.');
   });
   seedCurriculum();
 
@@ -469,9 +471,34 @@ function _seed() {
 
 // ── Init ─────────────────────────────────────────────────────────────────────
 
-function init() {
+function init(customDir) {
   if (_db) return;
-  _db = new Database(DB_PATH);
+  
+  const finalDir = customDir || DB_DIR;
+  const finalPath = customDir ? path.join(customDir, 'gurukul.sqlite') : DB_PATH;
+  
+  // Ensure the DB directory exists
+  fs.mkdirSync(finalDir, { recursive: true });
+
+  _db = new Database(finalPath);
+  
+  // better-sqlite3 compatibility polyfill for transactions
+  if (!_db.transaction) {
+    _db.transaction = function(fn) {
+      return (...args) => {
+        _db.exec('BEGIN');
+        try {
+          const result = fn(...args);
+          _db.exec('COMMIT');
+          return result;
+        } catch (e) {
+          _db.exec('ROLLBACK');
+          throw e;
+        }
+      };
+    };
+  }
+
   // Apply schema (CREATE TABLE IF NOT EXISTS — safe to run every startup)
   _db.exec(SCHEMA);
   _seed();
@@ -487,7 +514,21 @@ function buildInitSnapshot() {
   // Users
   const usersArr = d.prepare(`SELECT * FROM users`).all();
   const users = {};
-  usersArr.forEach(u => { users[u.id] = u; });
+  usersArr.forEach(u => {
+    users[u.id] = {
+      id:             u.id,
+      username:       u.username,
+      password:       u.password,
+      displayName:    u.display_name,
+      grade:          u.grade,
+      avatar:         u.avatar,
+      photo:          u.photo,
+      joinDate:       u.join_date,
+      preferredStyle: u.preferred_style,
+      persona:        u.persona,
+      role:           u.role
+    };
+  });
 
   // XP
   const xpArr = d.prepare(`SELECT * FROM user_xp`).all();
@@ -1022,7 +1063,12 @@ const Q = {
       db().prepare(`DELETE FROM topic_completions    WHERE user_id=?`).run(userId);
       db().prepare(`DELETE FROM quick_check_results  WHERE user_id=?`).run(userId);
       db().prepare(`DELETE FROM demo_overrides       WHERE user_id=?`).run(userId);
+      db().prepare(`DELETE FROM mentor_rewards       WHERE user_id=?`).run(userId);
       db().prepare(`UPDATE active_sessions SET xp_earned=0 WHERE user_id=?`).run(userId);
+      db().prepare(`
+        UPDATE user_xp SET total_xp=0, level=1, is_promoted=0, promoted_at=NULL, updated_at=datetime('now')
+        WHERE user_id=?
+      `).run(userId);
     });
     t();
   },

@@ -511,13 +511,17 @@ function _renderQuickCheckModal() {
           <div class="qc-header">
             <span class="qc-title">📝 Quick Check · ${topicName}</span>
           </div>
-          <div class="qc-body qc-submitted-body">
-            <div class="qc-submitted-icon">✅</div>
-            <p class="qc-submitted-msg">Assessment submitted!</p>
-            <p class="qc-submitted-sub">Your responses have been recorded. Your mentor will review your answers.</p>
+          <div class="qc-body qc-submitted-body" style="text-align: center;">
+            <div class="qc-submitted-icon" style="font-size:3rem; margin-bottom:1rem;">✅</div>
+            <p class="qc-submitted-msg" style="font-size:1.5rem; font-weight:bold; color:var(--m-accent);">You scored ${_quickCheck.finalScore} / ${_quickCheck.finalTotal}</p>
+            <div style="background:#FFF8E1; padding:1.2rem; border-radius:15px; margin-top:1.5rem; border:1px solid #FFE082; display:flex; align-items:center; gap:1rem; text-align: left;">
+               <img src="img/krishna-guide.png" style="width:60px; height:60px; border-radius:50%; box-shadow: 0 4px 10px rgba(0,0,0,0.1);">
+               <p style="margin:0; font-size:1.05rem; color:#6B3F1A; line-height: 1.4;"><strong>Krishna says:</strong><br/>"${_quickCheck.krishnaMessage}"</p>
+            </div>
+            <p class="qc-submitted-sub" style="margin-top: 1.5rem;">Your mentor has received your results.</p>
           </div>
           <div class="qc-footer">
-            <button class="btn qc-done-btn" onclick="GKApp.closeTopicQuickCheck()">Done</button>
+            <button class="btn qc-done-btn" onclick="GKApp.closeTopicQuickCheck()">Continue Journey</button>
           </div>
         </div>`
         : `
@@ -624,6 +628,19 @@ function _renderQuickCheckModal() {
         (answers[i] === q.correct)
     }));
     const score = answerRecord.filter(a => a.isCorrect).length;
+    const total = questions.length;
+
+    // Krishna Dynamic Announcement
+    const msg = score >= total * 0.7 
+      ? `Great job! You got ${score} out of ${total}! Your dedication is shining!` 
+      : `Good effort! You got ${score} out of ${total}. Every challenge makes you stronger!`;
+    
+    _quickCheck.finalScore = score;
+    _quickCheck.finalTotal = total;
+    _quickCheck.krishnaMessage = msg;
+    
+    // Attempt Voice Playback
+    if (typeof GKVoice !== 'undefined') GKVoice.speak(msg);
 
     // Persist to data layer under the student's profile (mentor-visible, score hidden from student)
     GKStore.saveQuickCheckResult(state.user.id, {
