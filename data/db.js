@@ -49,24 +49,37 @@ const GKDatabase = (() => {
     Object.assign(_c.users,              snapshot.users              || {});
     Object.assign(_c.xp,                 snapshot.xp                 || {});
     Object.assign(_c.activeSessions,     snapshot.activeSessions     || {});
-    Object.assign(_c.subtopicCompletions,snapshot.subtopicCompletions|| {});
-    Object.assign(_c.topicCompletions,   snapshot.topicCompletions   || {});
-    Object.assign(_c.subtopicScores,     snapshot.subtopicScores     || {});
-    Object.assign(_c.assessmentAttempts, snapshot.assessmentAttempts || {});
-    Object.assign(_c.mentorNotes,        snapshot.mentorNotes        || {});
-    Object.assign(_c.mentorRewards,      snapshot.mentorRewards      || {});
-    Object.assign(_c.topicLocks,         snapshot.topicLocks         || {});
-    Object.assign(_c.quickCheckResults,  snapshot.quickCheckResults  || {});
-    Object.assign(_c.holisticScores,     snapshot.holisticScores     || {});
-    Object.assign(_c.subtopicFeedback,   snapshot.subtopicFeedback   || {});
-    Object.assign(_c.moduleFeedback,     snapshot.moduleFeedback     || {});
-    Object.assign(_c.demoOverrides,      snapshot.demoOverrides      || {});
-    Object.assign(_c.userExtras,         snapshot.userExtras         || {});
-    Object.assign(_c.sessionHistory,     snapshot.sessionHistory     || {});
-    Object.assign(_c.reviewRequests,     snapshot.reviewRequests     || {});
-    Object.assign(_c.mentorMoodLog,        snapshot.mentorMoodLog        || {});
+
+    // Per-user keyed data: replace entirely so deleted entries are removed
+    // (Object.assign won't remove keys that the server no longer returns)
+    _replaceKeys(_c.subtopicCompletions, snapshot.subtopicCompletions || {});
+    _replaceKeys(_c.topicCompletions,    snapshot.topicCompletions    || {});
+    _replaceKeys(_c.subtopicScores,      snapshot.subtopicScores      || {});
+    _replaceKeys(_c.assessmentAttempts,  snapshot.assessmentAttempts  || {});
+    _replaceKeys(_c.mentorNotes,         snapshot.mentorNotes         || {});
+    _replaceKeys(_c.mentorRewards,       snapshot.mentorRewards       || {});
+    _replaceKeys(_c.topicLocks,          snapshot.topicLocks          || {});
+    _replaceKeys(_c.quickCheckResults,   snapshot.quickCheckResults   || {});
+    _replaceKeys(_c.holisticScores,      snapshot.holisticScores      || {});
+    _replaceKeys(_c.subtopicFeedback,    snapshot.subtopicFeedback    || {});
+    _replaceKeys(_c.moduleFeedback,      snapshot.moduleFeedback      || {});
+    _replaceKeys(_c.demoOverrides,       snapshot.demoOverrides       || {});
+    _replaceKeys(_c.userExtras,          snapshot.userExtras          || {});
+    _replaceKeys(_c.sessionHistory,      snapshot.sessionHistory      || {});
+    _replaceKeys(_c.reviewRequests,      snapshot.reviewRequests      || {});
+    _replaceKeys(_c.mentorMoodLog,       snapshot.mentorMoodLog       || {});
     Object.assign(_c.learningPaths,        snapshot.learningPaths        || {});
     Object.assign(_c.studentLearningPaths, snapshot.studentLearningPaths || {});
+  }
+
+  /** Replace all keys in target with source, removing stale entries. */
+  function _replaceKeys(target, source) {
+    // Remove keys no longer present in the server snapshot
+    for (const k of Object.keys(target)) {
+      if (!(k in source)) delete target[k];
+    }
+    // Copy in all current values
+    Object.assign(target, source);
   }
 
   // ── Public API ────────────────────────────────────────────────────────────

@@ -18,53 +18,53 @@ const GK_SME = {
 // Mentor credentials (separate from student accounts)
 const GK_MENTOR = {
   id: "mentor01",
-  username: "mentor",
-  password: "mentor123",
-  displayName: "Bela",
+  username: "maitreyi",
+  password: "maitreyi123",
+  displayName: "Maitreyi",
   role: "Mentor",
   avatar: "🕉", // Advisor Narayana
-  photo: "img/bela-mentor.png"
+  photo: "img/maitreyi_mentor.png"
 };
 
 const GK_USERS = [
   {
-    id: "diya",
-    username: "diya",
-    password: "Diya@2025",
-    displayName: "Diya",
+    id: "gargi",
+    username: "gargi",
+    password: "Gargi@2025",
+    displayName: "Gargi",
     grade: "6",
     avatar: "🌸",
-    photo: "img/avatar-diya.jpeg",
+    photo: "img/gargi_student.png",
     joinDate: "2025-01-01",
     totalXP: 0,
     level: 1,
     completedTopics: [],
     preferredStyle: "visual",
-    persona: "Nature lover, silent, high IQ. Struggles with noisy environments but blossoms in quiet contemplation."
+    persona: "Hobby: Nature. Loves the outdoors, ecology, plants, and rivers. Wants all examples to be about nature."
   },
   {
-    id: "disha",
-    username: "disha",
-    password: "Disha@2025",
-    displayName: "Disha",
+    id: "ahilya",
+    username: "ahilya",
+    password: "Ahilya@2025",
+    displayName: "Ahilya",
     grade: "6",
     avatar: "🌺",
-    photo: "img/avatar-disha.png",
+    photo: "img/ahilya_student.png",
     joinDate: "2025-01-01",
     totalXP: 0,
     level: 1,
     completedTopics: [],
     preferredStyle: "visual",
-    persona: "Creative and expressive learner. Thrives on storytelling, art connections, and collaborative activities."
+    persona: "Hobby: Nature. Loves the outdoors, ecology, plants, and rivers. Wants all examples to be about nature."
   },
   {
-    id: "vidvath",
-    username: "vidvath",
-    password: "Vidvath@2025",
-    displayName: "Vidvath",
+    id: "nachiketa",
+    username: "nachiketa",
+    password: "Nachiketa@2025",
+    displayName: "Nachiketa",
     grade: "Grade 6",
     avatar: "🌺",
-    photo: "img/avatar-vidvath.png",
+    photo: "img/nachiketa_student.png",
     joinDate: "2025-01-01",
     totalXP: 0,
     level: 1,
@@ -73,19 +73,19 @@ const GK_USERS = [
     persona: "Energetic, practical learner, curious. Obsessed with automobiles, engineering, and hands-on experiments. Loves quick feedback."
   },
   {
-    id: "mahanth",
-    username: "mahanth",
-    password: "Mahanth@2025",
-    displayName: "Mahanth",
+    id: "arjuna",
+    username: "arjuna",
+    password: "Arjuna@2025",
+    displayName: "Arjuna",
     grade: "6",
     avatar: "🦁",
-    photo: "img/avatar-mahanth.png",
+    photo: "img/arjuna_student.png",
     joinDate: "2025-01-01",
     totalXP: 0,
     level: 1,
     completedTopics: [],
     preferredStyle: "kinesthetic",
-    persona: "Bold, competitive, and analytical. Motivated by challenges, rankings, and mastery of concepts."
+    persona: "Hobby: Photography. Loves camera gear, lenses, lighting, and framing. Wants all examples to be about photography."
   }
 ];
 

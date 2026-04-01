@@ -759,6 +759,38 @@
   font-size: 0.9rem;
   line-height: 1.5;
   color: var(--m-primary-accent);
+  max-height: 300px;
+  overflow-y: auto;
+  padding-right: 0.5rem;
+  scrollbar-width: thin;
+  scrollbar-color: var(--m-accent) transparent;
+}
+
+.nlp-bubble-text::-webkit-scrollbar {
+  width: 4px;
+}
+.nlp-bubble-text::-webkit-scrollbar-track {
+  background: transparent;
+}
+.nlp-bubble-text::-webkit-scrollbar-thumb {
+  background: var(--m-accent);
+  border-radius: 4px;
+}
+
+/* Markdown specific styling */
+.nlp-bubble-text p {
+  margin-bottom: 0.75rem;
+}
+.nlp-bubble-text strong {
+  font-weight: 800;
+  color: var(--m-primary);
+  background: rgba(196, 136, 42, 0.05); /* matching uh-text strong style */
+  padding: 0 3px;
+  border-radius: 3px;
+}
+.nlp-bubble-text ul, .nlp-bubble-text ol {
+  margin-left: 1.25rem;
+  margin-bottom: 0.75rem;
 }
 
 /* Integrated Control Styling */

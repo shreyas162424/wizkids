@@ -163,6 +163,9 @@ const GKStore = (() => {
     if (profileData.holisticScores) {
       _c.holisticScores[userId] = profileData.holisticScores;
     }
+    if (profileData.overrides && typeof profileData.overrides === 'object') {
+      _c.demoOverrides[userId] = { ...(_c.demoOverrides[userId] || {}), ...profileData.overrides };
+    }
     // --- write to server ---
     _post('/api/profile/save', { userId, profileData });
     _triggerSync();
@@ -549,6 +552,9 @@ const GKStore = (() => {
     _c.quickCheckResults[userId]   = [];
     _c.demoOverrides[userId]       = {};
     _c.mentorRewards[userId]       = [];
+    _c.topicLocks[userId]         = {};
+    _c.userExtras[userId]         = {};
+    _c.reviewRequests[userId]     = [];
     
     // Reset total XP and Level
     _c.xp[userId] = { totalXP: 0, level: 1, isPromoted: false, promotedAt: null };

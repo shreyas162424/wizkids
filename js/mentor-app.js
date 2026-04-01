@@ -18,7 +18,10 @@ const GKMentorApp = (() => {
     narayanaMsg: '',
     narayanaExpanded: false, // widget state
     mentorMoodSelected: 'high_energy', // Initialized to match UI default
-    mentorBrainBattery: 70            // Initialized to match UI default
+    mentorBrainBattery: 70,            // Initialized to match UI default
+    expandedSections: {},              // Tracks expanded state for bento items
+    pendingInputs: {},                 // Tracks textarea values during typing
+    evalCheckedState: {}               // Tracks eval checkbox states across re-renders
   };
 
   const KRISHNA_STATES = {
@@ -60,7 +63,25 @@ const GKMentorApp = (() => {
       hqGeneration: renderHQGeneration
     };
     const renderer = screens[state.currentScreen] || renderLogin;
+    
+    // PERSIST FOCUS: Save active element ID before re-rendering
+    const activeId = document.activeElement ? document.activeElement.id : null;
+    const scrollPos = window.scrollY;
+
     app.innerHTML = renderer();
+
+    // RESTORE FOCUS: Restore focus if it was on a tracked element
+    if (activeId) {
+      const el = document.getElementById(activeId);
+      if (el) {
+        el.focus();
+        // If it was a textarea/input, move cursor to end
+        if (el.setSelectionRange && el.value) {
+          const len = el.value.length;
+          el.setSelectionRange(len, len);
+        }
+      }
+    }
 
     attachEvents(state.currentScreen);
   }
@@ -462,26 +483,26 @@ const GKMentorApp = (() => {
             <div class="nebula-bento-grid">
               
               <!-- Row 1: Achievement & Curriculum -->
-              <div class="nebula-bento-item bento-half collapsed">
+              <div class="nebula-bento-item bento-half ${state.expandedSections['achievement-log'] ? '' : 'collapsed'}">
                 <div class="p-section-header collapse-trigger" onclick="GKMentorApp.toggleSection('achievement-log')">
                   <div class="p-header-info">
                     <h3>Achievement Progress</h3>
                     <p>Recent Performance Metrics</p>
                   </div>
-                  <div class="toggle-icon">▶</div>
+                  <div class="toggle-icon">${state.expandedSections['achievement-log'] ? '▼' : '▶'}</div>
                 </div>
                 <div id="achievement-log" class="collapsible-inner nebula-orbs-container" style="display: flex; flex-wrap: wrap; gap: 1.5rem; margin-top: 1rem;">
                   ${_renderAssessments(id, assessmentAttempts)}
                 </div>
               </div>
 
-              <div class="nebula-bento-item bento-half collapsed">
+              <div class="nebula-bento-item bento-half ${state.expandedSections['curriculum-path'] ? '' : 'collapsed'}">
                 <div class="p-section-header collapse-trigger" onclick="GKMentorApp.toggleSection('curriculum-path')">
                   <div class="p-header-info">
                     <h3>Curriculum Journey</h3>
                     <p>Milestones & Continuity</p>
                   </div>
-                  <div class="toggle-icon">▶</div>
+                  <div class="toggle-icon">${state.expandedSections['curriculum-path'] ? '▼' : '▶'}</div>
                 </div>
                 <div id="curriculum-path" class="collapsible-inner curriculum-nebula-list" style="margin-top: 1rem; max-height: 350px; overflow-y: auto;">
                   ${_renderTopicsProgress(student)}
@@ -489,7 +510,7 @@ const GKMentorApp = (() => {
               </div>
 
               <!-- Row 2: Promote & Evaluation -->
-              <div class="nebula-bento-item bento-half collapsed">
+              <div class="nebula-bento-item bento-half ${state.expandedSections['promotion-gateway'] ? '' : 'collapsed'}">
                 <div class="p-section-header collapse-trigger" onclick="GKMentorApp.toggleSection('promotion-gateway')">
                   <div class="p-header-info">
                     <h3>🚀 Promote to Next Path</h3>
@@ -498,14 +519,14 @@ const GKMentorApp = (() => {
                       <button class="btn btn-outline btn-xs" style="font-size: 0.65rem; padding: 2px 8px; margin-left: 10px;" onclick="event.stopPropagation(); GKMentorApp.unlockAllNextPath('${id}')">✨ Unlock All Available</button>
                     </div>
                   </div>
-                  <div class="toggle-icon">▶</div>
+                  <div class="toggle-icon">${state.expandedSections['promotion-gateway'] ? '▼' : '▶'}</div>
                 </div>
                 <div id="promotion-gateway" class="collapsible-inner nebula-path-container" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 1.5rem; margin-top: 1.5rem;">
                    ${_renderNextPathSection(id, student)}
                 </div>
               </div>
 
-              <div class="nebula-bento-item bento-half collapsed">
+              <div class="nebula-bento-item bento-half ${state.expandedSections['evaluation-console'] ? '' : 'collapsed'}">
                 <div class="p-section-header collapse-trigger" onclick="GKMentorApp.toggleSection('evaluation-console')">
                   <div class="p-header-info">
                     <h3>🎯 Evaluation Console</h3>
@@ -514,7 +535,7 @@ const GKMentorApp = (() => {
                       <button class="btn btn-outline btn-xs" style="font-size: 0.65rem; padding: 2px 8px; margin-left: 10px;" onclick="event.stopPropagation(); GKMentorApp.selectAllEvalTopics()">✅ Select All</button>
                     </div>
                   </div>
-                  <div class="toggle-icon">▶</div>
+                  <div class="toggle-icon">${state.expandedSections['evaluation-console'] ? '▼' : '▶'}</div>
                 </div>
                 <div id="evaluation-console" class="collapsible-inner eval-topics-list" style="margin-top: 1rem;">
                    ${(() => {
@@ -543,7 +564,7 @@ const GKMentorApp = (() => {
                             const scoreColor = latest ? (latest.percentage >= 60 ? '#27ae60' : '#e74c3c') : (isOverride ? '#7B3FA0' : '#888');
                             return `
                               <label class="eval-topic-item" style="background: #fff; border: 1px solid ${isDone ? '#c8e6c9' : 'rgba(0,0,0,0.05)'}; padding: 1.25rem; border-radius: 20px; display: flex; align-items: center; gap: 1rem; cursor: pointer;">
-                                <input type="checkbox" class="eval-topic-cb" value="${tk}" ${isDone ? 'checked' : ''} style="width: 20px; height: 20px; accent-color: var(--m-accent);">
+                                <input type="checkbox" class="eval-topic-cb" value="${tk}" ${(state.evalCheckedState[tk] !== undefined ? state.evalCheckedState[tk] : isDone) ? 'checked' : ''} onchange="GKMentorApp.onEvalCheckChange('${tk}', this.checked)" style="width: 20px; height: 20px; accent-color: var(--m-accent);">
                                 <div style="flex: 1;">
                                   <div style="font-weight: 800; font-size: 0.95rem;">${_formatTopicId(tk)}</div>
                                   <div style="font-size: 0.75rem; font-weight: 700; color: ${scoreColor};">${scoreText}</div>
@@ -561,7 +582,7 @@ const GKMentorApp = (() => {
               </div>
 
               <!-- Row 3: Wisdom Hub (Full Width) -->
-              <div class="nebula-bento-item bento-full mas-wisdom-card collapsed">
+              <div class="nebula-bento-item bento-full mas-wisdom-card ${state.expandedSections['wisdom-hub-content'] ? '' : 'collapsed'}">
                 <div class="mas-panel-header collapse-trigger" onclick="GKMentorApp.toggleSection('wisdom-hub-content')">
                   <div class="mas-header-info">
                     <div style="display: flex; align-items: center; justify-content: space-between; width: 100%;">
@@ -569,7 +590,7 @@ const GKMentorApp = (() => {
                         <span class="mas-icon">✨</span>
                         <span class="mas-title">Wisdom Hub</span>
                       </div>
-                      <div class="toggle-icon">▶</div>
+                      <div class="toggle-icon">${state.expandedSections['wisdom-hub-content'] ? '▼' : '▶'}</div>
                     </div>
                   </div>
                   <p class="mas-subtitle">Channel Guidance & Honors</p>
@@ -583,7 +604,8 @@ const GKMentorApp = (() => {
                         <span class="mas-group-label">Guidance to Shishya</span>
                       </div>
                       <div class="mas-input-stack">
-                        <textarea id="suggestion-message" class="mas-textarea" placeholder="Channel your insights..."></textarea>
+                        <textarea id="suggestion-message" class="mas-textarea" placeholder="Channel your insights..." 
+                                  oninput="GKMentorApp.persistInput(this.id, this.value)">${state.pendingInputs['suggestion-message'] || ''}</textarea>
                         <div class="mas-control-row">
                           <select id="suggestion-topic" class="mas-select">
                             <option value="">General Guidance</option>
@@ -600,7 +622,8 @@ const GKMentorApp = (() => {
                         <span class="mas-group-label">Guru Observations (Not visible to student)</span>
                       </div>
                       <div class="mas-input-stack">
-                        <textarea id="admin-feedback-msg" class="mas-textarea mas-textarea-small" placeholder="Internal notes..."></textarea>
+                        <textarea id="admin-feedback-msg" class="mas-textarea mas-textarea-small" placeholder="Internal notes..." 
+                                  oninput="GKMentorApp.persistInput(this.id, this.value)">${state.pendingInputs['admin-feedback-msg'] || ''}</textarea>
                         <button class="mas-btn-secondary" onclick="GKMentorApp.sendAdminFeedback('${id}')">Save Private Note</button>
                       </div>
                     </div>
@@ -753,6 +776,7 @@ const GKMentorApp = (() => {
   function viewStudent(userId) {
     state.selectedStudentId = userId;
     state.suggestionTopicKey = null;
+    state.evalCheckedState = {};  // reset eval checkboxes for new student
     navigate('studentDetail');
   }
 
@@ -833,6 +857,8 @@ const GKMentorApp = (() => {
     const focusEl = document.getElementById('suggestion-focus');
     if (msgEl) msgEl.value = '';
     if (focusEl) focusEl.value = '';
+    delete state.pendingInputs['suggestion-message'];
+    delete state.pendingInputs['suggestion-focus'];
 
     setTimeout(() => {
       renderInPlace();
@@ -861,6 +887,7 @@ const GKMentorApp = (() => {
     if (confirm) confirm.classList.remove('hidden');
     const msgEl = document.getElementById('admin-feedback-msg');
     if (msgEl) msgEl.value = '';
+    delete state.pendingInputs['admin-feedback-msg'];
 
     setTimeout(() => { renderInPlace(); }, 1500);
   }
@@ -997,14 +1024,24 @@ const GKMentorApp = (() => {
     const moods = sessionHistory.filter(s => s.type === 'login_mood').map(s => s.mood);
     const lastFeedback = sessionHistory.filter(s => s.type === 'mentor_feedback').slice(-1)[0]?.message || 'None';
 
+    let hqScores = { aq: 'N/A', sq: 'N/A', pq: 'N/A', eq: 'N/A' };
+    if (studentId && typeof HolisticEvaluationEngine !== 'undefined') {
+      const merged = HolisticEvaluationEngine.getMergedScores(studentId);
+      const m = merged.metrics || {};
+      hqScores.aq = m.human_aq !== null ? Math.round((m.ai_aq + m.human_aq) / 2) : (m.ai_aq || 'N/A');
+      hqScores.sq = m.human_sq !== null ? Math.round((m.ai_sq + m.human_sq) / 2) : (m.ai_sq || 'N/A');
+      hqScores.pq = m.human_pq !== null ? Math.round((m.ai_pq + m.human_pq) / 2) : (m.ai_pq || 'N/A');
+      hqScores.eq = m.human_eq !== null ? Math.round((m.ai_eq + m.human_eq) / 2) : (m.ai_eq || 'N/A');
+    }
+
     return {
       mentorName: state.mentor ? (state.mentor.displayName || 'Guru') : 'Guru',
       studentName: student.displayName || 'Shishya',
       topicId: state.selectedTopicId || 'Overall',
-      aq: student.aq || 'N/A',
-      sq: student.sq || 'N/A',
-      pq: student.pq || 'N/A',
-      eq: student.eq || 'N/A',
+      aq: hqScores.aq,
+      sq: hqScores.sq,
+      pq: hqScores.pq,
+      eq: hqScores.eq,
       level: student.level || 1,
       xp: student.totalXP || 0,
       moods: moods.slice(-5),
@@ -1022,6 +1059,7 @@ const GKMentorApp = (() => {
 
     const msgEl = document.querySelector('.nlp-bubble-text');
     if (!msgEl) return;
+    const queryBtn = document.querySelector('.nlp-send-btn');
 
     if (!state.narayanaMessages) state.narayanaMessages = [];
     state.narayanaMessages.push({ role: 'user', text: query });
@@ -1029,22 +1067,32 @@ const GKMentorApp = (() => {
     // 1. Ensure config initialized
     await GK_AI_CONFIG.ensureLoaded();
 
-    msgEl.innerHTML = `<span class="sparkle-rotate">✨</span> <span class="thinking-dots">Narayana is contemplating</span>`;
+    const loadingMsg = `<span class="sparkle-rotate">✨</span> <span class="thinking-dots">Narayana is contemplating</span>`;
+    msgEl.innerHTML = loadingMsg;
+    state.narayanaMsg = loadingMsg;
     inputEl.value = '';
+    if (queryBtn) { queryBtn.disabled = true; queryBtn.style.opacity = '0.5'; }
 
     try {
       const context = _getNarayanaContext();
       const response = await GKAITutor.respond(query, context, 'mentor');
       
+      const formattedResponse = typeof marked !== 'undefined' ? marked.parse(response) : response;
+      
       state.narayanaMessages.push({ role: 'ai', text: response });
-      msgEl.innerHTML = response;
+      msgEl.innerHTML = formattedResponse;
+      state.narayanaMsg = formattedResponse;
+      if (queryBtn) { queryBtn.disabled = false; queryBtn.style.opacity = '1'; }
     } catch (e) {
       console.error("Narayana AI Error:", e);
-      msgEl.innerHTML = `
+      const errorMsg = `
         <div>The ethereal connection is faint. Let us try again soon, Guru. 🙏</div>
         <div class="chat-error-notice">
           <span>⚠️</span> <span>Insight: ${e.message}</span>
         </div>`;
+      msgEl.innerHTML = errorMsg;
+      state.narayanaMsg = errorMsg;
+      if (queryBtn) { queryBtn.disabled = false; queryBtn.style.opacity = '1'; }
     }
   }
 
@@ -1201,7 +1249,11 @@ const GKMentorApp = (() => {
 
   function selectAllEvalTopics() {
     const boxes = document.querySelectorAll('.eval-topic-cb');
-    boxes.forEach(b => { b.checked = true; });
+    boxes.forEach(b => { b.checked = true; state.evalCheckedState[b.value] = true; });
+  }
+
+  function onEvalCheckChange(topicKey, isChecked) {
+    state.evalCheckedState[topicKey] = isChecked;
   }
 
   // Per-subject Accept: mark topic complete, show toast
@@ -1865,14 +1917,12 @@ const GKMentorApp = (() => {
   }
 
   function toggleSection(sectionId) {
-    const el = document.getElementById(sectionId);
-    if (!el) return;
-    const parent = el.closest('.nebula-bento-item');
-    if (parent) {
-      parent.classList.toggle('collapsed');
-      const icon = parent.querySelector('.toggle-icon');
-      if (icon) icon.textContent = parent.classList.contains('collapsed') ? '▶' : '▼';
-    }
+    state.expandedSections[sectionId] = !state.expandedSections[sectionId];
+    renderInPlace();
+  }
+
+  function persistInput(id, value) {
+    state.pendingInputs[id] = value;
   }
 
 
@@ -1890,9 +1940,9 @@ const GKMentorApp = (() => {
     sendAdminFeedback, sendParentFeedback, submitEvaluation, clearAllScores,
     onQuotientInput, saveHolisticQuotient,
     triggerAIEvaluation, renderInPlace,
-    toggleNarayana, toggleSection,
+    toggleNarayana, toggleSection, persistInput,
     toggleLiveFullscreen, showPromotionNotice,
-    selectAllEvalTopics, unlockAllNextPath, acceptSubject, rejectSubject,
+    selectAllEvalTopics, onEvalCheckChange, unlockAllNextPath, acceptSubject, rejectSubject,
     selectMentorMood, submitMentorMood, updateMentorBattery,
     navigate, renderLiveView, generateAndSaveHQ,
     sendNarayanaQuery,

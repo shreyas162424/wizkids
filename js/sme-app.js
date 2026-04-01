@@ -1777,7 +1777,7 @@ window.GKSmeApp = (function () {
         <div class="sme-assess-q">
           <div class="sme-assess-qtext">Q${i+1}: ${q.question}</div>
           <div class="sme-assess-opts">
-            ${q.options.map((o,oi) =>
+            ${(q.options || []).map((o,oi) =>
               `<span class="sme-assess-opt ${oi===q.correct?'sme-opt-correct':''}">${String.fromCharCode(65+oi)}. ${o}</span>`
             ).join('')}
           </div>

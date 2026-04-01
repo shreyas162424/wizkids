@@ -486,11 +486,22 @@ router.post('/ai/proxy', async (req, res) => {
     
     console.log(`[GKProxy] Requesting Gemini (${model})...`);
     
-    const resp = await fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body)
-    });
+    let resp;
+    let attempts = 0;
+    while (attempts < 2) {
+      try {
+        resp = await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body)
+        });
+        break; // break loop on success
+      } catch (err) {
+        attempts++;
+        if (attempts >= 2) throw err;
+        console.warn(`[GKProxy] Network/Timeout error on attempt ${attempts}. Retrying...`);
+      }
+    }
 
     console.log(`[GKProxy] Gemini Response Status: ${resp.status}`);
     

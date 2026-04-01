@@ -116,6 +116,20 @@ const GKAITutor = (() => {
       ? (GK_AI_CONFIG.NARAYANA_SYSTEM_INSTRUCTION || GK_AI_CONFIG.SYSTEM_INSTRUCTION)
       : GK_AI_CONFIG.SYSTEM_INSTRUCTION;
 
+    // OVERRIDE CACHED PERSONA: Always fetch the freshest persona from users.js master data
+    if (typeof GK_USERS !== 'undefined') {
+      const studentName = context.userName || context.studentName;
+      if (studentName) {
+        const freshUser = GK_USERS.find(u => 
+          u.username.toLowerCase() === studentName.toLowerCase() || 
+          u.displayName.toLowerCase() === studentName.toLowerCase()
+        );
+        if (freshUser && freshUser.persona) {
+          context.persona = freshUser.persona;
+        }
+      }
+    }
+
     // Apply dynamic placeholder replacements
     systemInstruction = systemInstruction
       .replace('{{subject}}', context.subject || 'Learning')
@@ -223,17 +237,21 @@ Persona Traits: ${context.persona || 'Standard'}
         error: JSON.stringify(errorBody, null, 2)
       });
       
-      // AUTO-FALLBACK: Try other models if first one fails with 404
-      if (response.status === 404) {
+      // AUTO-FALLBACK: Restricted to Gemini 3 Flash, 2.5 Flash, and Latest
+      if (response.status === 404 || response.status === 503 || response.status === 429) {
         const fallbacks = [
-          'gemini-flash-latest', 'gemini-pro-latest', 'gemini-2.0-flash'
+          'gemini-2.5-flash'
         ];
-        // Find the next model we haven't tried yet in this chain
-        const currentIndex = fallbacks.indexOf(GK_AI_CONFIG.MODEL);
-        const nextModel = fallbacks[currentIndex + 1];
+        // Find ALL alternative models we haven't tried yet
+        const currentModel = GK_AI_CONFIG.MODEL;
+        const nextModel = fallbacks.find(m => m !== currentModel);
         
         if (nextModel) {
-          console.warn(`🔄 GKAITutor: 404 detected for ${GK_AI_CONFIG.MODEL}. Retrying with ${nextModel}...`);
+          console.warn(`🔄 GKAITutor: ${response.status} detected for ${currentModel}. Retrying with ${nextModel} rapidly...`);
+          
+          // Only wait 300ms instead of 1000ms to keep the demo feeling fast
+          await new Promise(r => setTimeout(r, 300));
+
           const oldModel = GK_AI_CONFIG.MODEL;
           GK_AI_CONFIG.MODEL = nextModel;
           try {

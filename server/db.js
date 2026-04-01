@@ -334,12 +334,10 @@ function _seed() {
   console.log('[GKServer/db] checking reference data...');
 
   // --- Users ---
-  const userCount = _db.prepare(`SELECT COUNT(*) AS n FROM users`).get();
-  if (userCount.n === 0) {
-    console.log('[GKServer/db] seeding initial users...');
-    const { GK_USERS, GK_MENTOR, GK_SME } = _loadDataFile('users.js', [
-      'GK_USERS', 'GK_MENTOR', 'GK_SME'
-    ]);
+  console.log('[GKServer/db] syncing users...');
+  const { GK_USERS, GK_MENTOR, GK_SME } = _loadDataFile('users.js', [
+    'GK_USERS', 'GK_MENTOR', 'GK_SME'
+  ]);
 
   const insUser = _db.prepare(`
     INSERT OR IGNORE INTO users
@@ -371,9 +369,8 @@ function _seed() {
         insXP.run({ id: u.id, xp: u.totalXP || 0 });
       }
     });
-    });
-    seedUsers();
-  }
+  });
+  seedUsers();
 
   // --- Curriculum ---
   const { GK_TOPICS } = _loadDataFile('topics.js', ['GK_TOPICS']);
@@ -1064,6 +1061,11 @@ const Q = {
       db().prepare(`DELETE FROM quick_check_results  WHERE user_id=?`).run(userId);
       db().prepare(`DELETE FROM demo_overrides       WHERE user_id=?`).run(userId);
       db().prepare(`DELETE FROM mentor_rewards       WHERE user_id=?`).run(userId);
+      db().prepare(`DELETE FROM topic_locks          WHERE user_id=?`).run(userId);
+      db().prepare(`DELETE FROM holistic_scores      WHERE user_id=?`).run(userId);
+      db().prepare(`DELETE FROM holistic_evaluations WHERE user_id=?`).run(userId);
+      db().prepare(`DELETE FROM review_requests      WHERE user_id=?`).run(userId);
+      db().prepare(`DELETE FROM user_extra           WHERE user_id=?`).run(userId);
       db().prepare(`UPDATE active_sessions SET xp_earned=0 WHERE user_id=?`).run(userId);
       db().prepare(`
         UPDATE user_xp SET total_xp=0, level=1, is_promoted=0, promoted_at=NULL, updated_at=datetime('now')
@@ -1178,6 +1180,18 @@ const Q = {
           hs.eq ?? null, hs.hq ?? null,
           JSON.stringify(hs), hs.savedAt || now
         );
+      }
+      
+      if (profileData.overrides && typeof profileData.overrides === 'object') {
+        Object.entries(profileData.overrides).forEach(([tk, val]) => {
+          if (val === true) {
+            db().prepare(`INSERT OR REPLACE INTO demo_overrides (user_id, topic_key, override_json) VALUES (?,?,?)`)
+              .run(userId, tk, JSON.stringify({ overriden: true, at: now }));
+          } else {
+            db().prepare(`DELETE FROM demo_overrides WHERE user_id=? AND topic_key=?`)
+              .run(userId, tk);
+          }
+        });
       }
 
       // Extra unknown fields → user_extra

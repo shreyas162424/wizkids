@@ -247,8 +247,12 @@ const GKApp = (() => {
     }
 
     // Custom logic for retry suggestion on feedback pages
-    if ((screen === 'moduleFeedback' || screen === 'feedback' || screen === 'subtopicFeedback') && state._lastAssessmentScore !== null && state._lastAssessmentScore < 60) {
-      return `I noticed some struggles with the assessment, ${name}. Why don't you retry it? Perseverance is the key to wisdom! \ud83c\udf38`;
+    if ((screen === 'moduleFeedback' || screen === 'feedback' || screen === 'subtopicFeedback') && state._lastAssessmentScore !== null) {
+      if (state._lastAssessmentScore < 60) {
+        return `I noticed some struggles with the assessment, ${name}. Why don't you retry it? Perseverance is the key to wisdom! \ud83c\udf38`;
+      } else {
+        return `Excellent work on the assessment, ${name}! Your dedication shines brightly. Keep up the great work! ✨`;
+      }
     }
 
     const msgSource = messages[screen] || messages.modules;
@@ -795,16 +799,21 @@ const GKApp = (() => {
 
       const allVisibleSubjects = [...new Set(visibleModules.map(m => m.subjectId))];
       const sess = GKStore.getSession() || {};
-      const assessResultsLocal = sess.assessmentResults || {};
-      const compSts = sess.completedSubtopics || [];
-      const overridesLocal = JSON.parse(localStorage.getItem('gk_demo_overrides_' + state.user.id) || '{}');
+      const overridesLocal = state.user.overrides || {};
 
       function isTopicDoneLocally(m) {
+        const key = `${m.subjectId}-${m.topicId}`;
         const td = GKRecommender.getTopicData(m.subjectId, m.topicId);
         if (!td) return true;
+        
+        // Topic is done if formally completed, overridden, or (fallback) all mandatory subtopics done in this session
+        const isCompleted = (state.user.completedTopics || []).includes(key);
+        if (isCompleted || !!overridesLocal[key]) return true;
+
         const mandatorySts = td.topic.subtopics.filter(st => st.mandatory !== false);
+        const compSts = sess.completedSubtopics || [];
         const subDone = mandatorySts.length > 0 ? mandatorySts.every(st => compSts.includes(m.topicId + '-' + st.id)) : false;
-        return !!assessResultsLocal[`${m.subjectId}-${m.topicId}`] || subDone || !!overridesLocal[`${m.subjectId}-${m.topicId}`];
+        return subDone;
       }
 
       const incompleteSubjects = allVisibleSubjects.filter(sub => {
@@ -910,7 +919,8 @@ const GKApp = (() => {
         const key = `${slot.subjectId}-${slot.topicId}`;
         const assign = state.ttLockedSubs[key] || { subjectId: slot.subjectId, topicId: slot.topicId };
         const m = moduleFor(assign.subjectId, assign.topicId);
-        const isDone = m ? !!assessResults[`${m.subjectId}-${m.topicId}`] : false;
+        const overrides = state.user ? (state.user.overrides || {}) : {};
+        const isDone = m ? ((state.user.completedTopics || []).includes(`${m.subjectId}-${m.topicId}`) || !!overrides[`${m.subjectId}-${m.topicId}`]) : false;
         const cls = m ? (isDone ? 'tt-done' : 'tt-active') : 'tt-ghost';
         const color = m ? `--tt-bg:${m.subjectColor}` : '';
         return `
@@ -931,7 +941,8 @@ const GKApp = (() => {
       // ── Pinned module slot — fixed topic, not draggable, no lock icon ───
       if (slot.pinned) {
         const m = moduleFor(slot.subjectId, slot.topicId);
-        const isDone = m ? !!assessResults[`${m.subjectId}-${m.topicId}`] : false;
+        const overrides = state.user ? (state.user.overrides || {}) : {};
+        const isDone = m ? ((state.user.completedTopics || []).includes(`${m.subjectId}-${m.topicId}`) || !!overrides[`${m.subjectId}-${m.topicId}`]) : false;
         const cls = m ? (isDone ? 'tt-done' : 'tt-active') : 'tt-ghost';
         const color = m ? `--tt-bg:${m.subjectColor}` : '';
         fp++; // still consume a flex slot position so indices stay aligned
@@ -969,21 +980,23 @@ const GKApp = (() => {
       }
 
       // Standard completion: either assessment done or all mandatory subtopics finished + overrides check
-      const overrides = JSON.parse(localStorage.getItem('gk_demo_overrides_' + state.user.id) || '{}');
+      const overrides = state.user.overrides || {};
       const topicData = GKRecommender.getTopicData(m.subjectId, m.topicId);
       let allSubtopicsDone = false;
       if (topicData) {
         const mandatorySts = topicData.topic.subtopics.filter(st => st.mandatory !== false);
-        const completedSubtopics = (GKStore.getSession() || {}).completedSubtopics || [];
-        allSubtopicsDone = mandatorySts.length > 0 ? mandatorySts.every(st => completedSubtopics.includes(m.topicId + '-' + st.id)) : false;
+        const profileSubs = state.user.completedSubtopics || [];
+        allSubtopicsDone = mandatorySts.length > 0 ? mandatorySts.every(st => profileSubs.includes(m.topicId + '-' + st.id)) : false;
       }
-      const isDone = !!assessResults[`${m.subjectId}-${m.topicId}`] || !!overrides[`${m.subjectId}-${m.topicId}`];
+      
+      const isCompleted = (state.user.completedTopics || []).includes(`${m.subjectId}-${m.topicId}`);
+      const isDone = isCompleted || !!overrides[`${m.subjectId}-${m.topicId}`];
       const cls = isDone ? 'tt-done' : 'tt-active';
 
       // Assessment tab ALWAYS shows, but is locked if subtopics are NOT done OR already attempted
       const isAssessibleModule = m.topicId === 'gravity'; // Only for gravity as per current config
       const hasAssessTab = isAssessibleModule;
-      const isAlreadyAssessed = !!assessResults[`${m.subjectId}-${m.topicId}`];
+      const isAlreadyAssessed = isCompleted;
       const isAssessLocked = !allSubtopicsDone || isAlreadyAssessed;
 
       const dragAttrs = `draggable="true" data-fp="${curFp}"
@@ -1048,10 +1061,10 @@ const GKApp = (() => {
     const visibleModules = state.modules.filter(m => m.assigned !== false);
 
     // Determine if the entire assigned learning path is finished
-    const overrides = JSON.parse(localStorage.getItem('gk_demo_overrides_' + user.id) || '{}');
+    const overrides = state.user.overrides || {};
     const allLearningPathDone = visibleModules.length > 0 && visibleModules.every(m => {
       const topicKey = `${m.subjectId}-${m.topicId}`;
-      return (assessResults[topicKey] && assessResults[topicKey].score !== undefined) || overrides[topicKey];
+      return (state.user.completedTopics || []).includes(topicKey) || overrides[topicKey];
     });
 
     return `
@@ -3719,7 +3732,7 @@ const GKApp = (() => {
               GKVoice.speak(msg);
               state.activeNotification = {
                 text: msg,
-                htmlContent: `${msg} <div style="margin-top:10px;"><button class="btn btn-sm" onclick="GKApp.clearAgentNotification()" style="background:#FFF9C4; color:#6B3F1A; border:1px solid #FFE082; padding:2px 10px; font-size:0.75rem; border-radius:15px; font-weight:700;">✅ Got it</button></div>`
+                htmlContent: `${msg} <div style="margin-top:10px;"><button class="btn btn-sm" onclick="event.stopPropagation(); GKApp.clearAgentNotification()" style="background:#FFF9C4; color:#6B3F1A; border:1px solid #FFE082; padding:2px 10px; font-size:0.75rem; border-radius:15px; font-weight:700;">✅ Got it</button></div>`
               };
             } else if ((updatedUser.totalXP || 0) > (state.user.totalXP || 0)) {
               const diff = updatedUser.totalXP - state.user.totalXP;
@@ -3727,7 +3740,7 @@ const GKApp = (() => {
               GKVoice.speak(msg);
               state.activeNotification = {
                 text: msg,
-                htmlContent: `${msg} <div style="margin-top:10px;"><button class="btn btn-sm" onclick="GKApp.clearAgentNotification()" style="background:#FFF9C4; color:#6B3F1A; border:1px solid #FFE082; padding:2px 10px; font-size:0.75rem; border-radius:15px; font-weight:700;">✅ Clear</button></div>`
+                htmlContent: `${msg} <div style="margin-top:10px;"><button class="btn btn-sm" onclick="event.stopPropagation(); GKApp.clearAgentNotification()" style="background:#FFF9C4; color:#6B3F1A; border:1px solid #FFE082; padding:2px 10px; font-size:0.75rem; border-radius:15px; font-weight:700;">✅ Clear</button></div>`
               };
             }
 
@@ -3754,10 +3767,12 @@ const GKApp = (() => {
     });
 
     // Fallback polling (essential for local file:// cross-tab syncing)
-    setInterval(() => {
+    setInterval(async () => {
       if (state.isMirror) return;  // mirror mode uses SSE — polling not needed
       const activeId = state.user ? state.user.id : null;
       if (activeId) {
+        // Refresh cache from server so mentor notes & other updates arrive
+        await GKDatabase.refresh();
         const profile = GKStore.getUserProfile(activeId);
         if (!profile) return;
         const baseUser = GK_USERS.find(u => u.id === activeId) || {};
@@ -3773,7 +3788,7 @@ const GKApp = (() => {
             GKVoice.speak(msg);
             state.activeNotification = {
               text: msg,
-              htmlContent: `${msg} <div style="margin-top:10px;"><button class="btn btn-sm" onclick="GKApp.clearAgentNotification()" style="background:#FFF9C4; color:#6B3F1A; border:1px solid #FFE082; padding:2px 10px; font-size:0.75rem; border-radius:15px; font-weight:700;">✅ Got it</button></div>`
+              htmlContent: `${msg} <div style="margin-top:10px;"><button class="btn btn-sm" onclick="event.stopPropagation(); GKApp.clearAgentNotification()" style="background:#FFF9C4; color:#6B3F1A; border:1px solid #FFE082; padding:2px 10px; font-size:0.75rem; border-radius:15px; font-weight:700;">✅ Got it</button></div>`
             };
           } else if ((mergedUser.totalXP || 0) > (state.user.totalXP || 0)) {
             const diff = mergedUser.totalXP - state.user.totalXP;
@@ -3781,7 +3796,7 @@ const GKApp = (() => {
             GKVoice.speak(msg);
             state.activeNotification = {
               text: msg,
-              htmlContent: `${msg} <div style="margin-top:10px;"><button class="btn btn-sm" onclick="GKApp.clearAgentNotification()" style="background:#FFF9C4; color:#6B3F1A; border:1px solid #FFE082; padding:2px 10px; font-size:0.75rem; border-radius:15px; font-weight:700;">✅ Clear</button></div>`
+              htmlContent: `${msg} <div style="margin-top:10px;"><button class="btn btn-sm" onclick="event.stopPropagation(); GKApp.clearAgentNotification()" style="background:#FFF9C4; color:#6B3F1A; border:1px solid #FFE082; padding:2px 10px; font-size:0.75rem; border-radius:15px; font-weight:700;">✅ Clear</button></div>`
             };
           }
 
@@ -3816,7 +3831,7 @@ const GKApp = (() => {
                             </div>
                           </div>
                           <div style="margin-top:10px; text-align:right;">
-                            <button class="btn btn-sm" onclick="GKApp.clearAgentNotification()" style="background:#FFF9C4; color:#6B3F1A; border:1px solid #FFE082; padding:2px 10px; font-size:0.75rem; border-radius:15px; font-weight:700;">✅ Understood</button>
+                            <button class="btn btn-sm" onclick="event.stopPropagation(); GKApp.clearAgentNotification()" style="background:#FFF9C4; color:#6B3F1A; border:1px solid #FFE082; padding:2px 10px; font-size:0.75rem; border-radius:15px; font-weight:700;">✅ Understood</button>
                           </div>`
           };
           GKVoice.speak(msg);
@@ -3884,28 +3899,38 @@ const GKApp = (() => {
   function toggleDemoOverride(subjectId, topicId) {
     const userId = state.user.id;
     const key = `${subjectId}-${topicId}`;
-    const overrides = JSON.parse(localStorage.getItem('gk_demo_overrides_' + userId) || '{}');
-    if (overrides[key]) {
-      delete overrides[key];
-    } else {
-      overrides[key] = true;
-    }
-    localStorage.setItem('gk_demo_overrides_' + userId, JSON.stringify(overrides));
-    localStorage.setItem('gk_sync_ping', Date.now().toString());
+    
+    // Read from profile state, not local storage
+    const overrides = state.user.overrides || {};
+    const newState = !overrides[key];
+    
+    // Save to server
+    GKStore.saveUserProfile(userId, { overrides: { [key]: newState } });
+    
+    // Update local state immediately for fast feedback
+    state.user.overrides = { ...overrides, [key]: newState };
+    
     render(); // Re-render to reflect the change
   }
 
   function completeDay() {
     const userId = state.user.id;
-    const overrides = JSON.parse(localStorage.getItem('gk_demo_overrides_' + userId) || '{}');
+    const overrides = state.user.overrides || {};
 
     // Mark ALL currently assigned modules as complete for demo purposes
+    const newOverrides = {};
     state.modules.forEach(m => {
-      overrides[`${m.subjectId}-${m.topicId}`] = true;
+      const key = `${m.subjectId}-${m.topicId}`;
+      overrides[key] = true;
+      newOverrides[key] = true;
     });
 
-    localStorage.setItem('gk_demo_overrides_' + userId, JSON.stringify(overrides));
-    localStorage.setItem('gk_sync_ping', Date.now().toString());
+    // Sync all new overrides to server
+    GKStore.saveUserProfile(userId, { overrides: newOverrides });
+    
+    // Update local state immediately
+    state.user.overrides = { ...overrides, ...newOverrides };
+    
     render();
   }
 
