@@ -16,6 +16,8 @@ const express = require('express');
 const { init: initDB } = require('./db');
 const { syncConfig }   = require('./config-loader');
 const apiRoutes = require('./routes');
+const swaggerUi = require('swagger-ui-express');
+const swaggerSpec = require('../swagger');
 
 const PORT    = process.env.PORT || 3000;
 const DB_DIR  = process.env.DB_DIR || path.join(__dirname, '../db');
@@ -44,6 +46,13 @@ app.use(express.static(STATIC));
 // API routes
 app.use('/api', apiRoutes);
 
+/* Swagger UI */
+app.use(
+  '/api-docs',
+  swaggerUi.serve,
+  swaggerUi.setup(swaggerSpec)
+);
+
 // SPA fallback: serve student.html for unknown paths (mentor.html is explicit)
 app.get('*', (req, res) => {
   res.sendFile(path.join(STATIC, 'student.html'));
@@ -55,5 +64,5 @@ app.listen(PORT, '0.0.0.0', () => {
   console.log(`[GKServer] Gurukul running on port ${PORT}`);
   console.log(`  Student  → http://localhost:${PORT}/student.html`);
   console.log(`  Mentor   → http://localhost:${PORT}/mentor.html`);
-  console.log(`  API docs → http://localhost:${PORT}/api/init`);
+  console.log(`  Swagger UI - API docs → http://localhost:${PORT}/api-docs`);
 });
