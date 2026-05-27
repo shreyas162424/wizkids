@@ -2635,7 +2635,33 @@ const GKApp = (() => {
     console.log("Timetable auto-reordered based on mood:", recommendedOrder.map(r => r.subjectId));
   }
 
-  function startModule(idx) {
+  // function startModule(idx) {
+  //   state.activeModuleIdx = idx;
+  //   state.activeSubtopicIdx = 0;
+  //   state.expandedSubtopicIdx = 0;
+  //   state.conceptIdx = 0;
+  //   state.phase = 'concepts';
+  //   state.gameState = {};
+  //   state.aiMessages = [];
+
+  //   // Capture XP as baseline before entering module
+  //   state._modulesLastXP = GKStore.getTotalXP(state.user.id);
+
+  //   navigate('subtopics');
+  // }
+
+  //Added by keerthi
+  // startModule() is called when a student clicks a subject card on the learning path screen.
+  // e.g. clicking "The Wonderful World of Science" or "Fractions"
+  //
+  // Changes from original:
+  //   1. Changed to async function to support await for the content fetch
+  //   2. Added content fetch from /api/content before navigating to subtopics screen
+  //   3. All 6 content cards are printed to the browser console (DevTools) for verification
+  //
+  // Original function only set state and navigated to subtopics — that part is unchanged.
+
+  async function startModule(idx) {
     state.activeModuleIdx = idx;
     state.activeSubtopicIdx = 0;
     state.expandedSubtopicIdx = 0;
@@ -2647,8 +2673,35 @@ const GKApp = (() => {
     // Capture XP as baseline before entering module
     state._modulesLastXP = GKStore.getTotalXP(state.user.id);
 
+    // ── FETCH CONTENT AND PRINT TO CONSOLE // Added by Keerthi ───────────────────────────
+    const m         = state.modules[idx];
+    const topicData = GKRecommender.getTopicData(m.subjectId, m.topicId);
+    const subject     = topicData.subject.name;
+    const topicFolder = topicData.topic.githubFolder
+                    || topicData.topic.name.replace(/ /g, '_');
+
+    const response = await fetch(
+      `/api/content/${encodeURIComponent(subject)}/${encodeURIComponent(topicFolder)}`
+    );
+    const data = await response.json();
+
+    if (data.ok) {
+      const c = data.content;
+      console.group('📦 GKContent — ' + topicData.topic.name);
+      console.group('🪝 Card 1 — Curiosity Hooks');     console.log(c.hooks);        console.groupEnd();
+      console.group('❓ Card 2 — Trigger Questions');   console.log(c.triggers);     console.groupEnd();
+      console.group('💡 Card 3 — Concept Cards');       console.log(c.concepts);     console.groupEnd();
+      console.group('📝 Card 4 — Assessments');         console.log(c.assessments);  console.groupEnd();
+      console.group('🔭 Card 5 — Deep Dive Zone');      console.log(c.deepDive);     console.groupEnd();
+      console.group('🛠️ Card 6 — Project Zone');        console.log(c.project);      console.groupEnd();
+      console.groupEnd();
+    } else {
+      console.error('[GKContent] Failed:', data.error);
+    }
+    // ─────────────────────────────────────────────────────────────────
+
     navigate('subtopics');
-  }
+}
 
   function startModuleRetake(idx) {
     state.activeModuleIdx = idx;
@@ -2696,7 +2749,7 @@ const GKApp = (() => {
     navigate('modules');
   }
 
-  function startSubtopic(idx) {
+  async function startSubtopic(idx) {
     const m = state.modules[state.activeModuleIdx];
     const topicData = GKRecommender.getTopicData(m.subjectId, m.topicId);
     const subtopic = topicData.topic.subtopics[idx];
@@ -2715,6 +2768,7 @@ const GKApp = (() => {
     state.phase = (!subtopic.concepts || subtopic.concepts.length === 0) ? 'game' : 'concepts';
     state.gameState = {};
     state.aiMessages = [];
+
     navigate('learning');
   }
 
