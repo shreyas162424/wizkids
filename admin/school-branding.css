@@ -1,0 +1,82 @@
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: 'Poppins', sans-serif;
+  background: #FDFAF4;
+  min-height: 100vh;
+  padding: 2rem 1rem 3rem;
+  color: #333;
+}
+.wrap { max-width: 520px; margin: 0 auto; }
+.admin-badge {
+  display: inline-block;
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #8B5E1A;
+  background: #FFF8E7;
+  padding: 0.25rem 0.6rem;
+  border-radius: 6px;
+  margin-bottom: 0.75rem;
+}
+h1 { font-size: 1.5rem; color: #6B3F1A; margin-bottom: 0.25rem; }
+.lead { font-size: 0.9rem; color: #666; margin-bottom: 1.5rem; line-height: 1.5; }
+.card {
+  background: #fff;
+  border-radius: 16px;
+  padding: 1.5rem;
+  box-shadow: 0 4px 24px rgba(107,63,26,0.08);
+}
+label {
+  display: block;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #6B3F1A;
+  margin: 0.75rem 0 0.35rem;
+}
+label:first-of-type { margin-top: 0; }
+input[type="text"], input[type="password"], textarea {
+  width: 100%;
+  padding: 0.65rem 0.85rem;
+  border: 1px solid #e8dcc8;
+  border-radius: 10px;
+  font-family: inherit;
+  font-size: 0.95rem;
+}
+textarea { min-height: 72px; resize: vertical; }
+.preview {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-top: 1rem;
+  padding: 1rem;
+  background: #FFF8E7;
+  border-radius: 12px;
+}
+.preview img { width: 56px; height: auto; max-height: 56px; object-fit: contain; }
+.preview strong { display: block; color: #6B3F1A; font-size: 1.1rem; }
+.preview span { font-size: 0.8rem; color: #888; }
+.btn {
+  margin-top: 1.25rem;
+  padding: 0.75rem 1.5rem;
+  background: linear-gradient(135deg, #C4882A, #8B5E1A);
+  color: #fff;
+  border: none;
+  border-radius: 10px;
+  font-family: inherit;
+  font-weight: 600;
+  font-size: 0.95rem;
+  cursor: pointer;
+  width: 100%;
+}
+.btn:hover { filter: brightness(1.05); }
+.btn:disabled { opacity: 0.6; cursor: not-allowed; }
+.msg { margin-top: 1rem; padding: 0.75rem; border-radius: 8px; font-size: 0.85rem; display: none; }
+.msg.ok { display: block; background: #e8f5e9; color: #2e7d32; }
+.msg.err { display: block; background: #ffebee; color: #c62828; }
+.hint { font-size: 0.75rem; color: #999; margin-top: 0.25rem; }
+.hint code { font-size: 0.7rem; background: #f5f0e8; padding: 0.1rem 0.35rem; border-radius: 4px; }
+.foot { margin-top: 1.5rem; font-size: 0.8rem; color: #999; }
+.foot a { color: #C4882A; text-decoration: none; }
+.foot a:hover { text-decoration: underline; }
+input[type="file"] { font-size: 0.85rem; margin-top: 0.25rem; width: 100%; }

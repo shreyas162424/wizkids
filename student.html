@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Gurukul — Personalized Learning</title>
+  <meta name="description" content="Personalized learning platform for students." />
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
+
+  <!-- Stylesheet -->
+  <link rel="stylesheet" href="css/styles.css?v=32" />
+  <link rel="stylesheet" href="css/edvantage-theme.css?v=12" />
+
+  <!-- Markdown Parser -->
+  <script src="https://cdn.jsdelivr.net/npm/marked@4.3.0/marked.min.js"></script>
+
+  <style>
+    /* AI Markdown Rendering */
+    .agent-speech-bubble { text-align: left !important; max-height: 250px !important; overflow-y: auto !important; }
+    .agent-speech-bubble p { margin-bottom: 0.6rem !important; }
+    .agent-speech-bubble p:last-child { margin-bottom: 0 !important; }
+    .agent-speech-bubble strong { color: #0A4368 !important; font-weight: 700 !important; }
+    .agent-speech-bubble ul { margin: 0.4rem 0 !important; padding-left: 1.2rem !important; list-style-type: disc !important; }
+    .agent-speech-bubble li { margin-bottom: 0.2rem !important; }
+  </style>
+</head>
+
+<body>
+
+  <!-- SPA root — all screens are rendered here by app.js -->
+  <div id="app">
+    <div
+      style="display:flex;align-items:center;justify-content:center;min-height:100vh;font-family:sans-serif;color:#6B3F1A;">
+      Loading…
+    </div>
+  </div>
+
+  <!-- ==============================
+       DATA LAYER (load first)
+       ============================== -->
+  <script src="js/gk-branding.js?v=2"></script>
+  <script src="data/topics.js?v=16"></script>
+  <script src="data/users.js?v=14"></script>
+  <script src="data/feedback-data.js?v=4"></script>
+  <script src="data/db.js?v=1"></script>
+  <script src="data/session-store.js?v=11"></script>
+
+  <!-- ==============================
+       BUSINESS LOGIC LAYER
+       ============================== -->
+  <script src="js/auth.js?v=6"></script>
+  <script src="js/mood-engine.js?v=5"></script>
+  <script src="js/mood-game.js?v=3"></script>
+  <script src="js/recommender.js?v=4"></script>
+  <script src="js/assessment.js?v=4"></script>
+  <script src="js/feedback.js?v=4"></script>
+  <script src="js/voice-engine.js?v=4"></script>
+  <script src="js/xp-manager.js?v=4"></script>
+  <script src="js/ai-config.js?v=17426454"></script>
+  <script src="js/ai-tutor.js?v=17426471"></script>
+  <script src="js/holistic-engine.js?v=1"></script>
+  <script src="js/holistic-ui.js?v=1"></script>
+  <script src="js/agent-logic.js?v=2"></script>
+  <script src="js/gk-assistant.js?v=4"></script>
+
+  <!-- ==============================
+       UI LAYER (load last)
+       ============================== -->
+  <script src="js/app.js?v=1742661400"></script>
+
+</body>
+
+</html>

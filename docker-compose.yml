@@ -1,0 +1,17 @@
+version: '3.8'
+
+services:
+  gurukul:
+    build: .
+    container_name: gurukul-app
+    restart: always
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+    volumes:
+      - ./db:/app/db           # Persistent SQLite database
+      - ./config:/app/config   # Hot-reloadable curriculum paths
+      - ./.env:/app/.env       # Secure external API secrets

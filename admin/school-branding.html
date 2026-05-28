@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="robots" content="noindex, nofollow" />
+  <title>School branding (admin)</title>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="school-branding.css" />
+</head>
+<body>
+  <div class="wrap">
+    <p class="admin-badge">Admin only — not shown to students</p>
+    <h1>School branding</h1>
+    <p class="lead">
+      Set logo and school name for this deployment. Changes apply to student, mentor, SME, and portal pages after save.
+      Bookmark this URL; it is not linked from the public portal.
+    </p>
+
+    <form id="branding-form" class="card" novalidate>
+      <label for="pin">Setup PIN</label>
+      <input type="password" id="pin" name="pin" autocomplete="off" required />
+      <p class="hint">PIN is set in <code>config/branding.json</code> → <code>setupPin</code> (default: <code>gurukul-setup</code>).</p>
+
+      <label for="schoolName">School / company name</label>
+      <input type="text" id="schoolName" name="schoolName" required />
+
+      <label for="tagline">Short tagline (header)</label>
+      <input type="text" id="tagline" name="tagline" />
+
+      <label for="loginSubtitle">Login screen subtitle</label>
+      <input type="text" id="loginSubtitle" name="loginSubtitle" />
+
+      <label for="portalHero">Portal home page description</label>
+      <textarea id="portalHero" name="portalHero"></textarea>
+
+      <label for="logo">Logo (PNG, JPG, WebP, or SVG — max 2MB)</label>
+      <input type="file" id="logo" name="logo" accept="image/png,image/jpeg,image/jpg,image/webp,image/svg+xml" />
+
+      <div class="preview">
+        <img id="preview-img" src="../img/wizkids-logo.png" alt="" />
+        <div>
+          <strong id="preview-name">—</strong>
+          <span id="preview-tag">—</span>
+        </div>
+      </div>
+
+      <button type="submit" class="btn" id="save-btn">Save branding</button>
+      <div id="msg" class="msg" role="status"></div>
+    </form>
+
+    <p class="foot">
+      <a href="../index.html">Preview portal</a>
+      · Server must be running: <code>npm start</code>
+    </p>
+  </div>
+
+  <script src="school-branding.js"></script>
+</body>
+</html>

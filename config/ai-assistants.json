@@ -1,0 +1,71 @@
+{
+  "_readme": [
+    "Put avatar PNGs in wizkids/img/ named: {id}-guide.png, {id}-happy.png, etc.",
+    "Run: node scripts/sync-assistant-images.mjs  (copies from ../img/)",
+    "Students pick their guide in the sidebar menu (Your AI guide).",
+    "legacyFiles paths are relative to wizkids/img/ — same pattern as Krishna."
+  ],
+  "defaultAssistantId": "krishna",
+  "assistants": [
+    {
+      "id": "krishna",
+      "name": "Krishna",
+      "subtitle": "Your Divine Guide",
+      "emoji": "🪈",
+      "avatarDir": "avatars/krishna",
+      "legacyFiles": {
+        "guide": "krishna-guide.png",
+        "happy": "krishna-happy.png",
+        "thinking": "krishna-thinking.png",
+        "concerned": "krishna-concerned.png",
+        "proud": "krishna-proud1.png",
+        "exited": "krishna-exited1.png"
+      }
+    },
+    {
+      "id": "radha",
+      "name": "Radha",
+      "subtitle": "Grace & Devotion",
+      "emoji": "🌸",
+      "avatarDir": "avatars/radha",
+      "legacyFiles": {
+        "guide": "radha-guide.png",
+        "happy": "radha-happy.png",
+        "thinking": "radha-thinking.png",
+        "concerned": "radha-concerned.png",
+        "proud": "radha-happy.png",
+        "exited": "radha-happy.png"
+      }
+    },
+    {
+      "id": "rama",
+      "name": "Rama",
+      "subtitle": "The Noble Prince",
+      "emoji": "👑",
+      "avatarDir": "avatars/rama",
+      "legacyFiles": {
+        "guide": "rama-guide.png",
+        "happy": "rama-happy.png",
+        "thinking": "rama-thinking.png",
+        "concerned": "rama-concerned.png",
+        "proud": "rama-happy.png",
+        "exited": "rama-happy.png"
+      }
+    },
+    {
+      "id": "hanuman",
+      "name": "Hanuman",
+      "subtitle": "The Devoted Guardian",
+      "emoji": "🙏",
+      "avatarDir": "avatars/hanuman",
+      "legacyFiles": {
+        "guide": "hanuman-guide.png",
+        "happy": "hanuman-happy.png",
+        "thinking": "hanuman-thinking.png",
+        "concerned": "hanuman-concerned.png",
+        "proud": "hanuman-happy.png",
+        "exited": "hanuman-happy.png"
+      }
+    }
+  ]
+}

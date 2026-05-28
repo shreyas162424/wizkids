@@ -1,0 +1,17 @@
+{
+  "name": "gurukul-wizkids",
+  "version": "1.0.0",
+  "description": "Gurukul WizKids learning platform",
+  "main": "server/index.js",
+  "scripts": {
+    "start": "node server/index.js",
+    "blend-avatars": "node scripts/setup-and-blend-avatars.mjs",
+    "sync-avatars": "node scripts/sync-assistant-images.mjs"
+  },
+  "dependencies": {
+    "acorn": "^8.16.0",
+    "dotenv": "^17.3.1",
+    "express": "^4.18.2",
+    "multer": "^2.1.1"
+  }
+}

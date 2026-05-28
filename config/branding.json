@@ -1,0 +1,15 @@
+{
+  "schoolName": "Purna Chetana",
+  "tagline": "Digital Learning",
+  "loginSubtitle": "Welcome to E-Learning",
+  "loginButtonText": "Enter Gurukul ✨",
+  "portalHero": "AI-powered personalized learning. Choose your path below to begin the journey.",
+  "logoPath": "img/branding-logo.jpg",
+  "mentorLoginSubtitle": "Mentor Dashboard",
+  "mentorHeaderSubtitle": "Mentor View",
+  "smeLoginTitle": "Curated Content",
+  "smeLoginSubtitle": "SME Review Portal & Mentor Teaching Guide",
+  "smeHeaderSubtitle": "Curated Content",
+  "smeGuideHeaderSubtitle": "Mentor Teaching Guide",
+  "setupPin": "gurukul-setup"
+}
