@@ -4,19 +4,13 @@
     " GURUKUL — Personalized Learning Path Configuration",
     "=============================================================",
     "",
-    " EDIT THIS FILE to configure which topics each learning path",
-    " contains, and which students are assigned to which path.",
+    " Mathematics & Science lesson content comes from GET /api/content",
+    " (published/Grade_6). Topic IDs below must match data/topics.js.",
     "",
-    " After editing, apply changes in ONE of these ways:",
-    "   1. Restart the server / container  (changes auto-load on boot)",
-    "   2. Call POST /api/config/reload     (hot-reload, no restart needed)",
+    "   Mathematics : fractions  → API folder Symmetry",
+    "   Science     : gravity    → API folder The_Wonderful_World_of_Science",
     "",
-    " TOPIC IDs you can use (from the curriculum):",
-    "   Mathematics : fractions | data-handling | fractions-advanced | real-numbers",
-    "   Science     : gravity | methods-of-separation",
-    "   Next-path   : sanskrit | english | ai-training | young-scientist | art-craft | pe",
-    "",
-    " To find ALL available topic IDs call: GET /api/config/topics",
+    " After editing, restart the server or POST /api/config/reload",
     "============================================================="
   ],
 
@@ -24,29 +18,23 @@
     {
       "id": "path-grade6-core",
       "name": "Grade 6 — Core Curriculum",
-      "description": "Standard mandatory curriculum covering mathematics and science.",
+      "description": "Grade 6 mathematics and science via Gurukul content API.",
       "grade": "6",
       "isActive": true,
       "topics": [
-        { "topicId": "fractions",              "order": 1, "required": true },
-        { "topicId": "data-handling",          "order": 2, "required": true },
-        { "topicId": "gravity",                "order": 3, "required": true },
-        { "topicId": "methods-of-separation",  "order": 4, "required": true }
+        { "topicId": "fractions", "order": 1, "required": true },
+        { "topicId": "gravity",   "order": 2, "required": true }
       ]
     },
     {
       "id": "path-grade6-advanced",
       "name": "Grade 6 — Advanced Track",
-      "description": "Extended path for fast learners — includes advanced maths and extra science.",
+      "description": "Same API-backed math and science modules.",
       "grade": "6",
       "isActive": true,
       "topics": [
-        { "topicId": "fractions",              "order": 1, "required": true },
-        { "topicId": "fractions-advanced",     "order": 2, "required": true },
-        { "topicId": "real-numbers",           "order": 3, "required": true },
-        { "topicId": "data-handling",          "order": 4, "required": true },
-        { "topicId": "gravity",                "order": 5, "required": true },
-        { "topicId": "methods-of-separation",  "order": 6, "required": true }
+        { "topicId": "fractions", "order": 1, "required": true },
+        { "topicId": "gravity",   "order": 2, "required": true }
       ]
     }
   ],

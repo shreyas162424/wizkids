@@ -3156,12 +3156,18 @@ const GKApp = (() => {
     return pool.length ? allSubtopics.indexOf(pool[0]) : 0;
   }
 
-  function enterLessonFromModule(idx) {
+  async function enterLessonFromModule(idx) {
     state.activeModuleIdx = idx;
     state.expandedSubtopicIdx = null;
     state._modulesLastXP = GKStore.getTotalXP(state.user.id);
     const m = state.modules[idx];
-    if (m) _persistResumeLesson(m);
+    if (m) {
+      _persistResumeLesson(m);
+      const topicData = GKRecommender.getTopicData(m.subjectId, m.topicId);
+      if (topicData && topicData.topic && topicData.topic.githubFolder && typeof GKContentLoader !== 'undefined') {
+        await GKContentLoader.loadAndApply(topicData);
+      }
+    }
     startSubtopic(_firstSubtopicIdxForModule(idx));
   }
 
@@ -5354,5 +5360,6 @@ document.addEventListener('DOMContentLoaded', async () => {
   await GKDatabase.init();
   if (!GKBranding.isReady()) await GKBranding.init();
   await GKAssistant.loadConfig();
+  if (typeof GKContentLoader !== 'undefined') await GKContentLoader.preloadApiSubjects();
   GKApp.init();
 });

@@ -51,6 +51,51 @@ router.get('/init', (req, res) => {
   } catch (e) { err(res, e); }
 });
 
+// ── GET /api/content/:subject/:topic ─────────────────────────────────────────
+// Fetches 6 published JSON files (local published/ or remote via CONTENT_BASE_URL).
+
+router.get('/content/:subject/:topic', async (req, res) => {
+  try {
+    const { subject, topic } = req.params;
+    const baseUrl = process.env.CONTENT_BASE_URL;
+
+    if (!baseUrl) {
+      return res.status(500).json({ ok: false, error: 'CONTENT_BASE_URL not set in .env' });
+    }
+
+    const base = `${baseUrl}/${subject}/${topic}`;
+    const files = [
+      '01_curiosity_hooks_v2.json',
+      '02_trigger_questions_v2.json',
+      '03_concept_cards_v2.json',
+      '04_assessments_v2.json',
+      '05_deep_dive_zone_v2.json',
+      '06_project_zone_v2.json'
+    ];
+
+    const responses = await Promise.all(
+      files.map(f => fetch(`${base}/${f}`))
+    );
+
+    for (let i = 0; i < responses.length; i++) {
+      if (!responses[i].ok) {
+        return res.status(404).json({
+          ok: false,
+          error: `File not found: ${subject}/${topic}/${files[i]}`
+        });
+      }
+    }
+
+    const [hooks, triggers, concepts, assessments, deepDive, project] =
+      await Promise.all(responses.map(r => r.json()));
+
+    res.json({
+      ok: true,
+      content: { hooks, triggers, concepts, assessments, deepDive, project }
+    });
+  } catch (e) { err(res, e); }
+});
+
 // ── Branding (white-label: logo + school name, no code edits) ─────────────────
 
 router.get('/branding', (req, res) => {
