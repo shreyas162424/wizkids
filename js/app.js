@@ -2514,6 +2514,7 @@ const GKApp = (() => {
       state.calibration,
       profile.completedTopics || []
     ).filter(m => !_isTopicHidden(m, unlockedTopics))
+     .filter(m => GKStore.getPublishedTopicIds(state.user.id).has(m.topicId))  // only published topics shown in timetable\n .filter(m => GKStore.getPublishedTopicIds(state.user.id).has(m.topicId))  // only published topics shown in timetable
       .map((m, idx) => ({ ...m, _origIdx: idx }));
 
     _syncTimetableWithMood();
@@ -2565,6 +2566,7 @@ const GKApp = (() => {
       state.calibration,
       profile.completedTopics || []
     ).filter(m => !_isTopicHidden(m, unlockedTopics))
+     .filter(m => GKStore.getPublishedTopicIds(state.user.id).has(m.topicId))  // only published topics shown in timetable
       .map((m, idx) => ({ ...m, _origIdx: idx }));
 
     _syncTimetableWithMood();
@@ -3635,6 +3637,7 @@ const GKApp = (() => {
           state.calibration || GKMoodEngine.calibrateSession(80, 'high_energy'), 
           profile.completedTopics || []
         ).filter(m => !_isTopicHidden(m, unlockedTopics))
+                .filter(m => GKStore.getPublishedTopicIds(state.user.id).has(m.topicId))  // only published topics shown in timetable\n .filter(m => GKStore.getPublishedTopicIds(state.user.id).has(m.topicId))  // only published topics shown in timetable\n .filter(m => GKStore.getPublishedTopicIds(state.user.id).has(m.topicId))  // only published topics shown in timetable
          .map((m, idx) => ({ ...m, _origIdx: idx }));
 
         // Disable TTS in mirror mode to prevent audio overlap for mentor
@@ -3718,6 +3721,7 @@ const GKApp = (() => {
             state.calibration || GKMoodEngine.calibrateSession(80, 'high_energy'),
             freshProfile.completedTopics || []
           ).filter(m => !_isTopicHidden(m, unlockedTopics))
+           .filter(m => GKStore.getPublishedTopicIds(state.user.id).has(m.topicId))  // only published topics shown in timetable\n .filter(m => GKStore.getPublishedTopicIds(state.user.id).has(m.topicId))  // only published topics shown in timetable\n .filter(m => GKStore.getPublishedTopicIds(state.user.id).has(m.topicId))  // only published topics shown in timetable
            .map((m, idx) => ({ ...m, _origIdx: idx }));
 
           render();
@@ -3810,6 +3814,7 @@ const GKApp = (() => {
                 state.calibration,
                 updatedUser.completedTopics || []
               ).filter(m => !_isTopicHidden(m, unlockedTopics))
+                .filter(m => GKStore.getPublishedTopicIds(state.user.id).has(m.topicId))  // only published topics shown in timetable\n .filter(m => GKStore.getPublishedTopicIds(state.user.id).has(m.topicId))  // only published topics shown in timetable\n .filter(m => GKStore.getPublishedTopicIds(state.user.id).has(m.topicId))  // only published topics shown in timetable
                 .map((m, idx) => ({ ...m, _origIdx: idx }));
             }
 
@@ -3863,6 +3868,7 @@ const GKApp = (() => {
               state.calibration,
               profile.completedTopics || []
             ).filter(m => !_isTopicHidden(m, unlockedTopics))
+             .filter(m => GKStore.getPublishedTopicIds(state.user.id).has(m.topicId)) // only published topics shown in timetable\n .filter(m => GKStore.getPublishedTopicIds(state.user.id).has(m.topicId))  // only published topics shown in timetable\n .filter(m => GKStore.getPublishedTopicIds(state.user.id).has(m.topicId))  // only published topics shown in timetable
               .map((m, idx) => ({ ...m, _origIdx: idx }));
           }
           render();
