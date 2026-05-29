@@ -764,8 +764,8 @@ router.post('/progress/reset-all', (req, res) => {
  */
 router.post('/feedback/subtopic', (req, res) => {
   try {
-    const { userId, subtopicKey, feedbackData } = req.body;
-    Q.saveSubtopicFeedback(userId, subtopicKey, feedbackData);
+    const { userId, topicKey, subtopicKey, feedbackData } = req.body;
+    Q.saveSubtopicFeedback(userId, topicKey, subtopicKey, feedbackData);
     ok(res);
   } catch (e) { err(res, e); }
 });
@@ -863,6 +863,79 @@ router.post('/feedback/session', (req, res) => {
     const { userId, feedbackData } = req.body;
     Q.saveSessionFeedback(userId, feedbackData);
     ok(res);
+  } catch (e) { err(res, e); }
+});
+
+/**
+ * @swagger
+ * /api/feedback/all:
+ *   get:
+ *     summary: Get all feedback consolidated by student
+ *     description: Returns feedback for all students (or a single student) nested as student → sessions[] + modules[] → subtopics[].
+ *     tags:
+ *       - Feedback
+ *     parameters:
+ *       - in: query
+ *         name: userId
+ *         schema:
+ *           type: string
+ *         required: false
+ *         description: Filter to a specific student (optional)
+ *     responses:
+ *       200:
+ *         description: Consolidated feedback array
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 type: object
+ *                 properties:
+ *                   userId:
+ *                     type: string
+ *                   sessions:
+ *                     type: array
+ *                     items:
+ *                       type: object
+ *                       properties:
+ *                         id:               { type: integer }
+ *                         savedAt:          { type: string }
+ *                         enjoyedMost:      { type: string }
+ *                         improvementPoint: { type: string }
+ *                   modules:
+ *                     type: array
+ *                     items:
+ *                       type: object
+ *                       properties:
+ *                         topicKey:  { type: string }
+ *                         topicName: { type: string }
+ *                         savedAt:   { type: string }
+ *                         feedback:
+ *                           type: object
+ *                           properties:
+ *                             enjoyedMost:      { type: string }
+ *                             improvementPoint: { type: string }
+ *                         subtopics:
+ *                           type: array
+ *                           items:
+ *                             type: object
+ *                             properties:
+ *                               subtopicKey:  { type: string }
+ *                               subtopicName: { type: string }
+ *                               savedAt:      { type: string }
+ *                               feedback:
+ *                                 type: object
+ *                                 properties:
+ *                                   enjoyedMost:      { type: string }
+ *                                   improvementPoint: { type: string }
+ *       500:
+ *         description: Internal server error
+ */
+router.get('/feedback/all', (req, res) => {
+  try {
+    const { userId } = req.query;
+    const data = Q.getAllFeedback(userId || null);
+    res.json(data);
   } catch (e) { err(res, e); }
 });
 

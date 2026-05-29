@@ -446,12 +446,12 @@ const GKStore = (() => {
 
   // ── Granular feedback ─────────────────────────────────────────────────────
 
-  function saveSubtopicFeedback(userId, subtopicKey, feedbackData) {
-    const fb = _ensureObj(_c.subtopicFeedback, userId);
-    if (!fb[subtopicKey]) fb[subtopicKey] = [];
-    fb[subtopicKey].push({ ...feedbackData, savedAt: _now() });
-    _post('/api/feedback/subtopic', { userId, subtopicKey, feedbackData });
-  }
+function saveSubtopicFeedback(userId, topicKey, subtopicKey, feedbackData) {
+  const fb = _ensureObj(_c.subtopicFeedback, userId);
+  if (!fb[subtopicKey]) fb[subtopicKey] = [];
+  fb[subtopicKey].push({ ...feedbackData, savedAt: _now() });
+  _post('/api/feedback/subtopic', { userId, topicKey, subtopicKey, feedbackData });
+}
 
   function saveModuleFeedback(userId, topicKey, feedbackData) {
     const fb = _ensureObj(_c.moduleFeedback, userId);

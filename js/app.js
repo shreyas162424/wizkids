@@ -2132,134 +2132,132 @@ const GKApp = (() => {
 
   // ---- SCREEN 5b: Subtopic Feedback (quick, 2 questions) ----
   function renderSubtopicFeedback() {
-    const m = state.modules[state.activeModuleIdx];
-    const topicData = GKRecommender.getTopicData(m.subjectId, m.topicId);
-    const subtopicName = topicData
-      ? topicData.topic.subtopics[state.activeSubtopicIdx].name
-      : 'this subtopic';
-    const responses = state.subtopicFeedbackResponses || {};
+  const m = state.modules[state.activeModuleIdx];
+  const topicData = GKRecommender.getTopicData(m.subjectId, m.topicId);
+  const subtopicName = topicData
+    ? topicData.topic.subtopics[state.activeSubtopicIdx].name
+    : 'this subtopic';
 
-    return `
-      <div class="screen screen-feedback">
-        ${renderHeader()}
-        <div class="screen-agent-row">
-          ${_agentHtml('feedback')}
-          <div class="agent-pane-spacer"></div>
-          <div class="screen-content-col">
-            <div class="content-wrap">
-              <div class="feedback-header granular-feedback-header">
-                <span class="feedback-badge">Quick Check-In</span>
-                <h2>📝 How was "${subtopicName}"?</h2>
-                <p>Share your quick thoughts about this lesson!</p>
-              </div>
-              <div class="feedback-form">
-                <div class="feedback-question">
-                  <p class="fq-text">★ What did you enjoy the most?</p>
-                  <textarea id="stfb-enjoy" class="fq-textarea" placeholder="Write what you liked or found interesting..."
-                    style="width:100%; min-height:80px; padding:1rem; border:2px solid #F5EDD8; border-radius:10px; font-family:inherit; font-size:1rem; resize:vertical;"></textarea>
-                </div>
-                <div class="feedback-question" style="margin-top:1.2rem;">
-                  <p class="fq-text">🎯 What is the  improvement point u suggest?</p>
-                  <textarea id="stfb-improve" class="fq-textarea" placeholder="Write anything you found difficult or want to get better at..."
-                    style="width:100%; min-height:80px; padding:1rem; border:2px solid #F5EDD8; border-radius:10px; font-family:inherit; font-size:1rem; resize:vertical;"></textarea>
-                </div>
-                <div id="stfb-error" class="error-msg hidden">Please share at least one thought.</div>
-                <div class="feedback-actions" style="margin-top:1.5rem;">
-                  <button class="btn btn-primary" onclick="GKApp.submitSubtopicFeedback()">
-                    Submit ✓
-                  </button>
-                  <button class="btn btn-ghost" onclick="GKApp.skipSubtopicFeedback()">
-                    Skip
-                  </button>
-                </div>
-              </div>
+  const q0 = GK_SUBTOPIC_FEEDBACK_QUESTIONS[0]?.question;
+  const q1 = GK_SUBTOPIC_FEEDBACK_QUESTIONS[1]?.question;
+
+  return `
+  <div class="screen screen-feedback">
+    ${renderHeader()}
+    <div class="screen-agent-row">
+      ${_agentHtml('feedback')}
+      <div class="agent-pane-spacer"></div>
+      <div class="screen-content-col">
+        <div class="content-wrap">
+          <div class="feedback-header granular-feedback-header">
+            <span class="feedback-badge">Quick Check-In</span>
+            <h2>📝 How was "${subtopicName}"?</h2>
+            <p>Share your quick thoughts about this lesson!</p>
+          </div>
+          <div class="feedback-form">
+            <div class="feedback-question">
+              <p class="fq-text">★ ${q0}</p>
+              <textarea id="stfb-enjoy" class="fq-textarea" placeholder="Write what you liked or found interesting..."
+                style="width:100%; min-height:80px; padding:1rem; border:2px solid #F5EDD8; border-radius:10px; font-family:inherit; font-size:1rem; resize:vertical;"></textarea>
+            </div>
+            <div class="feedback-question" style="margin-top:1.2rem;">
+              <p class="fq-text">🎯 ${q1}</p>
+              <textarea id="stfb-improve" class="fq-textarea" placeholder="Write anything you found difficult or want to get better at..."
+                style="width:100%; min-height:80px; padding:1rem; border:2px solid #F5EDD8; border-radius:10px; font-family:inherit; font-size:1rem; resize:vertical;"></textarea>
+            </div>
+            <div id="stfb-error" class="error-msg hidden">Please share at least one thought.</div>
+            <div class="feedback-actions" style="margin-top:1.5rem;">
+              <button class="btn btn-primary" onclick="GKApp.submitSubtopicFeedback()">Submit ✓</button>
+              <button class="btn btn-ghost"   onclick="GKApp.skipSubtopicFeedback()">Skip</button>
             </div>
           </div>
         </div>
-      </div>`;
-  }
-
+      </div>
+    </div>
+  </div>`;
+}
   // ---- SCREEN 5c: Module Feedback (3 questions, shown after challenge zone) ----
-  function renderModuleFeedback() {
-    const m = state.modules[state.activeModuleIdx];
-    const topicName = m ? m.topicName : 'this module';
-    const responses = state.moduleFeedbackResponses || {};
+function renderModuleFeedback() {
+  const m = state.modules[state.activeModuleIdx];
+  const topicName = m ? m.topicName : 'this module';
 
-    return `
-      <div class="screen screen-feedback">
-        ${renderHeader()}
-        <div class="screen-agent-row">
-          ${_agentHtml('feedback')}
-          <div class="agent-pane-spacer"></div>
-          <div class="screen-content-col">
-            <div class="content-wrap">
-              <div class="feedback-header granular-feedback-header">
-                <span class="feedback-badge">Module Review</span>
-                <h2>🏅 How was "${topicName}"?</h2>
-                <p>Tell your Guru what you learned and what you need help with.</p>
+  const q0 = GK_MODULE_FEEDBACK_QUESTIONS[0]?.question;
+  const q1 = GK_MODULE_FEEDBACK_QUESTIONS[1]?.question;
+
+  return `
+    <div class="screen screen-feedback">
+      ${renderHeader()}
+      <div class="screen-agent-row">
+        ${_agentHtml('feedback')}
+        <div class="agent-pane-spacer"></div>
+        <div class="screen-content-col">
+          <div class="content-wrap">
+            <div class="feedback-header granular-feedback-header">
+              <span class="feedback-badge">Module Review</span>
+              <h2>🏅 How was "${topicName}"?</h2>
+              <p>Tell your Guru what you learned and what you need help with.</p>
+            </div>
+            <div class="feedback-form">
+              <div class="feedback-question">
+                <p class="fq-text">★ ${q0}</p>
+                <textarea id="mfb-enjoy" class="fq-textarea" placeholder="Write what you liked or found interesting..."
+                  style="width:100%; min-height:80px; padding:1rem; border:2px solid #F5EDD8; border-radius:10px; font-family:inherit; font-size:1rem; resize:vertical;"></textarea>
               </div>
-              <div class="feedback-form">
-                <div class="feedback-question">
-                  <p class="fq-text">★ What did you enjoy the most about this module?</p>
-                  <textarea id="mfb-enjoy" class="fq-textarea" placeholder="Write what you liked or found interesting..."
-                    style="width:100%; min-height:80px; padding:1rem; border:2px solid #F5EDD8; border-radius:10px; font-family:inherit; font-size:1rem; resize:vertical;"></textarea>
-                </div>
-                <div class="feedback-question" style="margin-top:1.2rem;">
-                  <p class="fq-text">🎯 What is your improvement point?</p>
-                  <textarea id="mfb-improve" class="fq-textarea" placeholder="Write anything you found difficult or want to get better at..."
-                    style="width:100%; min-height:80px; padding:1rem; border:2px solid #F5EDD8; border-radius:10px; font-family:inherit; font-size:1rem; resize:vertical;"></textarea>
-                </div>
-                <div id="mfb-error" class="error-msg hidden">Please share at least one thought.</div>
-                <div class="feedback-actions">
-                  <button class="btn btn-primary" onclick="GKApp.submitModuleFeedback()">
-                    Submit ✓
-                  </button>
-                  <button class="btn btn-ghost" onclick="GKApp.skipModuleFeedback()">
-                    Skip
-                  </button>
-                </div>
+              <div class="feedback-question" style="margin-top:1.2rem;">
+                <p class="fq-text">🎯 ${q1}</p>
+                <textarea id="mfb-improve" class="fq-textarea" placeholder="Write anything you found difficult or want to get better at..."
+                  style="width:100%; min-height:80px; padding:1rem; border:2px solid #F5EDD8; border-radius:10px; font-family:inherit; font-size:1rem; resize:vertical;"></textarea>
+              </div>
+              <div id="mfb-error" class="error-msg hidden">Please share at least one thought.</div>
+              <div class="feedback-actions">
+                <button class="btn btn-primary" onclick="GKApp.submitModuleFeedback()">Submit ✓</button>
+                <button class="btn btn-ghost"   onclick="GKApp.skipModuleFeedback()">Skip</button>
               </div>
             </div>
           </div>
         </div>
-      </div>`;
-  }
+      </div>
+    </div>`;
+}
 
   // ---- SCREEN 6: End-of-Session Feedback ----
-  function renderFeedback() {
-    return `
-      <div class="screen screen-feedback">
-        ${renderHeader()}
-        <div class="screen-agent-row">
-          ${_agentHtml('feedback')}
-          <div class="agent-pane-spacer"></div>
-          <div class="screen-content-col">
-            <div class="content-wrap">
-              <div class="feedback-header">
-                <h2>💬 Share Your Experience</h2>
-                <p>Your reflections help us personalize your next session!</p>
+function renderFeedback() {
+  const q0 = GK_FEEDBACK_QUESTIONS[0]?.question;
+  const q1 = GK_FEEDBACK_QUESTIONS[1]?.question;
+
+  return `
+    <div class="screen screen-feedback">
+      ${renderHeader()}
+      <div class="screen-agent-row">
+        ${_agentHtml('feedback')}
+        <div class="agent-pane-spacer"></div>
+        <div class="screen-content-col">
+          <div class="content-wrap">
+            <div class="feedback-header">
+              <h2>💬 Share Your Experience</h2>
+              <p>Your reflections help us personalize your next session!</p>
+            </div>
+            <div class="feedback-form">
+              <div class="feedback-question">
+                <p class="fq-text">★ ${q0}</p>
+                <textarea id="fb-enjoy" class="fq-textarea" placeholder="Write anything you liked, found interesting or fun..."
+                  style="width:100%; min-height:100px; padding:1rem; border:2px solid #F5EDD8; border-radius:10px; font-family:inherit; font-size:1rem; resize:vertical;"></textarea>
               </div>
-              <div class="feedback-form">
-                <div class="feedback-question">
-                  <p class="fq-text">★ What did you enjoy the most in today's session?</p>
-                  <textarea id="fb-enjoy" class="fq-textarea" placeholder="Write anything you liked, found interesting or fun..."
-                    style="width:100%; min-height:100px; padding:1rem; border:2px solid #F5EDD8; border-radius:10px; font-family:inherit; font-size:1rem; resize:vertical;"></textarea>
-                </div>
-                <div class="feedback-question" style="margin-top:1.2rem;">
-                  <p class="fq-text">🎯 What is one thing you want to improve or understand better?</p>
-                  <textarea id="fb-improve" class="fq-textarea" placeholder="Write anything you found difficult, unclear, or want to revisit..."
-                    style="width:100%; min-height:100px; padding:1rem; border:2px solid #F5EDD8; border-radius:10px; font-family:inherit; font-size:1rem; resize:vertical;"></textarea>
-                </div>
-                <div id="fb-error" class="error-msg hidden">Please share at least one thought before submitting.</div>
-                <button class="btn btn-primary btn-full mt-md" onclick="GKApp.submitFeedback()">
-                  Submit Feedback ✨
-                </button>
+              <div class="feedback-question" style="margin-top:1.2rem;">
+                <p class="fq-text">🎯 ${q1}</p>
+                <textarea id="fb-improve" class="fq-textarea" placeholder="Write anything you found difficult, unclear, or want to revisit..."
+                  style="width:100%; min-height:100px; padding:1rem; border:2px solid #F5EDD8; border-radius:10px; font-family:inherit; font-size:1rem; resize:vertical;"></textarea>
               </div>
+              <div id="fb-error" class="error-msg hidden">Please share at least one thought before submitting.</div>
+              <button class="btn btn-primary btn-full mt-md" onclick="GKApp.submitFeedback()">
+                Submit Feedback ✨
+              </button>
             </div>
           </div>
         </div>
-      </div>`;
-  }
+      </div>
+    </div>`;
+}
 
   // ---- SCREEN 7: Summary ----
   function renderSummary() {
@@ -3091,6 +3089,7 @@ const GKApp = (() => {
       GKStore.saveSubtopicScore(state.user.id, subtopicKey, gs.score, gs.total);
     }
     localStorage.setItem('gk_sync_ping', Date.now().toString());
+    state._pendingTopicKey = m.topicId;
     state._pendingSubtopicKey = subtopicKey;
     state.subtopicFeedbackResponses = {};
     state.conceptIdx = 0;
@@ -3241,6 +3240,11 @@ const GKApp = (() => {
   }
 
   function submitSubtopicFeedback() {
+     console.log('STATE CHECK:', {
+    pendingTopicKey:    state._pendingTopicKey,
+    pendingSubtopicKey: state._pendingSubtopicKey,
+    currentScreen:      state.currentScreen
+    });
     const enjoyEl = document.getElementById('stfb-enjoy');
     const improveEl = document.getElementById('stfb-improve');
     const enjoyText = enjoyEl ? enjoyEl.value.trim() : '';
@@ -3260,7 +3264,7 @@ const GKApp = (() => {
     };
 
     if (state._pendingSubtopicKey) {
-      GKStore.saveSubtopicFeedback(state.user.id, state._pendingSubtopicKey, feedbackData);
+      GKStore.saveSubtopicFeedback(state.user.id, state._pendingTopicKey, state._pendingSubtopicKey, feedbackData);
     }
     const xp = GKXPManager.awardXP(state.user.id, 'feedbackSubmitted');
     if (xp > 0 && state.user) state.user.totalXP = (state.user.totalXP || 0) + xp;
