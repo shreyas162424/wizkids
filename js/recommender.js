@@ -24,7 +24,7 @@ const GKRecommender = (() => {
           subjectColor: subject.color,
           topicId: topic.id,
           topicName: topic.name,
-          topicDescription: topic.description,
+          topicDescription: topic.scheduleDescription || topic.description,
           topicIcon: topic.icon,
           topicXP: topic.xp,
           subtopicCount: topic.subtopics.length,

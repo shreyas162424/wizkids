@@ -2,7 +2,7 @@
   "_readme": [
     "Put avatar PNGs in wizkids/img/ named: {id}-guide.png, {id}-happy.png, etc.",
     "Run: node scripts/sync-assistant-images.mjs  (copies from ../img/)",
-    "Students pick their guide in the sidebar menu (Your AI guide).",
+    "Admins set the default guide at /admin/school-branding.html (AI guide section).",
     "legacyFiles paths are relative to wizkids/img/ — same pattern as Krishna."
   ],
   "defaultAssistantId": "krishna",

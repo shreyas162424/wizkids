@@ -17,7 +17,8 @@ const { Q, LPQ, buildInitSnapshot } = require('./db');
 const { sseHandler, broadcast } = require('./events');
 const { syncConfig, readConfig, getConfigPath } = require('./config-loader');
 const {
-  readBranding, writeBranding, saveLogoFromBase64, saveLogoFile, getBrandingPath
+  readBranding, writeBranding, saveLogoFromBase64, saveLogoFile, getBrandingPath,
+  checkSetupPin
 } = require('./branding-loader');
 
 const router = express.Router();
@@ -51,49 +52,98 @@ router.get('/init', (req, res) => {
   } catch (e) { err(res, e); }
 });
 
+const PUBLISHED_GRADE6 = path.resolve(__dirname, '../published/Grade_6');
+const CONTENT_JSON_FILES = [
+  '01_curiosity_hooks_v2.json',
+  '02_trigger_questions_v2.json',
+  '03_concept_cards_v2.json',
+  '04_assessments_v2.json',
+  '05_deep_dive_zone_v2.json',
+  '06_project_zone_v2.json'
+];
+
+function _safeContentSegment(seg) {
+  if (!seg || !/^[A-Za-z0-9_-]+$/.test(seg)) return null;
+  return seg;
+}
+
+function _readPublishedContentFromDisk(subject, topic) {
+  const subj = _safeContentSegment(subject);
+  const top = _safeContentSegment(topic);
+  if (!subj || !top) return null;
+
+  const dir = path.join(PUBLISHED_GRADE6, subj, top);
+  if (!fs.existsSync(dir)) return null;
+
+  const readJson = (filename) => {
+    const filePath = path.join(dir, filename);
+    if (!fs.existsSync(filePath)) {
+      const err = new Error(`File not found: ${subject}/${topic}/${filename}`);
+      err.status = 404;
+      throw err;
+    }
+    return JSON.parse(fs.readFileSync(filePath, 'utf8'));
+  };
+
+  const [hooks, triggers, concepts, assessments, deepDive, project] =
+    CONTENT_JSON_FILES.map(readJson);
+
+  return { hooks, triggers, concepts, assessments, deepDive, project };
+}
+
+async function _fetchPublishedContentRemote(subject, topic) {
+  const baseUrl = process.env.CONTENT_BASE_URL;
+  if (!baseUrl) return null;
+
+  const base = `${baseUrl.replace(/\/$/, '')}/${subject}/${topic}`;
+  const responses = await Promise.all(
+    CONTENT_JSON_FILES.map(f => fetch(`${base}/${f}`))
+  );
+
+  for (let i = 0; i < responses.length; i++) {
+    if (!responses[i].ok) {
+      const err = new Error(`File not found: ${subject}/${topic}/${CONTENT_JSON_FILES[i]}`);
+      err.status = 404;
+      throw err;
+    }
+    const ct = responses[i].headers.get('content-type') || '';
+    if (!ct.includes('json')) {
+      const err = new Error(
+        `Invalid content response for ${CONTENT_JSON_FILES[i]} (expected JSON). Check CONTENT_BASE_URL.`
+      );
+      err.status = 502;
+      throw err;
+    }
+  }
+
+  const [hooks, triggers, concepts, assessments, deepDive, project] =
+    await Promise.all(responses.map(r => r.json()));
+
+  return { hooks, triggers, concepts, assessments, deepDive, project };
+}
+
 // ── GET /api/content/:subject/:topic ─────────────────────────────────────────
-// Fetches 6 published JSON files (local published/ or remote via CONTENT_BASE_URL).
+// Reads published JSON from published/Grade_6 first; optional remote via CONTENT_BASE_URL.
 
 router.get('/content/:subject/:topic', async (req, res) => {
   try {
     const { subject, topic } = req.params;
-    const baseUrl = process.env.CONTENT_BASE_URL;
 
-    if (!baseUrl) {
-      return res.status(500).json({ ok: false, error: 'CONTENT_BASE_URL not set in .env' });
+    let content = _readPublishedContentFromDisk(subject, topic);
+    if (!content) {
+      content = await _fetchPublishedContentRemote(subject, topic);
+    }
+    if (!content) {
+      return res.status(404).json({
+        ok: false,
+        error: `No published content for ${subject}/${topic}. Add files under published/Grade_6/ or set CONTENT_BASE_URL.`
+      });
     }
 
-    const base = `${baseUrl}/${subject}/${topic}`;
-    const files = [
-      '01_curiosity_hooks_v2.json',
-      '02_trigger_questions_v2.json',
-      '03_concept_cards_v2.json',
-      '04_assessments_v2.json',
-      '05_deep_dive_zone_v2.json',
-      '06_project_zone_v2.json'
-    ];
-
-    const responses = await Promise.all(
-      files.map(f => fetch(`${base}/${f}`))
-    );
-
-    for (let i = 0; i < responses.length; i++) {
-      if (!responses[i].ok) {
-        return res.status(404).json({
-          ok: false,
-          error: `File not found: ${subject}/${topic}/${files[i]}`
-        });
-      }
-    }
-
-    const [hooks, triggers, concepts, assessments, deepDive, project] =
-      await Promise.all(responses.map(r => r.json()));
-
-    res.json({
-      ok: true,
-      content: { hooks, triggers, concepts, assessments, deepDive, project }
-    });
-  } catch (e) { err(res, e); }
+    res.json({ ok: true, content });
+  } catch (e) {
+    err(res, e, e.status || 500);
+  }
 });
 
 // ── Branding (white-label: logo + school name, no code edits) ─────────────────
@@ -139,6 +189,24 @@ router.get('/ai-assistants', (req, res) => {
   try {
     const raw = fs.readFileSync(AI_ASSISTANTS_PATH, 'utf8');
     res.json(JSON.parse(raw));
+  } catch (e) { err(res, e); }
+});
+
+router.post('/admin/ai-assistants', (req, res) => {
+  try {
+    const pin = (req.body && req.body.setupPin) || '';
+    if (!checkSetupPin(pin)) {
+      return res.status(403).json({ ok: false, error: 'Invalid setup PIN' });
+    }
+    const defaultAssistantId = (req.body && req.body.defaultAssistantId) || '';
+    const raw = fs.readFileSync(AI_ASSISTANTS_PATH, 'utf8');
+    const config = JSON.parse(raw);
+    if (!config.assistants || !config.assistants.some(a => a.id === defaultAssistantId)) {
+      return res.status(400).json({ ok: false, error: 'Unknown AI guide' });
+    }
+    config.defaultAssistantId = defaultAssistantId;
+    fs.writeFileSync(AI_ASSISTANTS_PATH, JSON.stringify(config, null, 2) + '\n', 'utf8');
+    res.json({ ok: true, defaultAssistantId });
   } catch (e) { err(res, e); }
 });
 

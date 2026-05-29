@@ -1,7 +1,7 @@
 // ============================================================
 // GKContentLoader — maps GET /api/content → in-memory topic data
-// Used for Mathematics & Science (githubFolder in data/topics.js).
-// Does not change HTML/CSS; only fills concepts, games, assessments, hints.
+// Lesson flow per cycle: Curiosity Hook → Concept → Light Assessment
+// After all cycles: Deep Dive → Final Assessment → Project
 // ============================================================
 
 const GKContentLoader = (() => {
@@ -17,6 +17,71 @@ const GKContentLoader = (() => {
     if (Array.isArray(value)) return value;
     if (typeof value === 'object') return Object.keys(value).sort((a, b) => Number(a) - Number(b)).map(k => value[k]);
     return [];
+  }
+
+  function extractVideoUrl(text) {
+    const raw = String(text || '').trim();
+    if (!raw) return null;
+
+    const srcAttr = raw.match(/\bsrc\s*=\s*["']([^"']+)["']/i);
+    if (srcAttr && /^https?:\/\//i.test(srcAttr[1])) {
+      return srcAttr[1].trim();
+    }
+
+    if (/^https?:\/\//i.test(raw)) return raw.replace(/[.,;)\]]+$/, '');
+
+    const urls = raw.match(/https?:\/\/[^\s<>"']+/gi);
+    if (!urls || !urls.length) return null;
+
+    const preferred = urls.find(u => /youtube\.com|youtu\.be|vimeo\.com|drive\.google/i.test(u));
+    return (preferred || urls[0]).replace(/[.,;)\]]+$/, '');
+  }
+
+  function _isVideoHtml(value) {
+    const v = String(value || '');
+    return /<iframe\b/i.test(v) || /\bsrc\s*=\s*["']https?:\/\//i.test(v);
+  }
+
+  /**
+   * Turn a pasted link or embed HTML into a watchable player spec.
+   * Returns null if the value is only a title with no URL.
+   */
+  function parseVideoEmbed(input) {
+    const url = extractVideoUrl(input);
+    if (!url) return null;
+
+    let yt = url.match(/(?:youtube\.com\/watch\?(?:.*&)?v=|youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/|youtube\.com\/shorts\/)([a-zA-Z0-9_-]{11})/);
+    if (yt) {
+      return {
+        kind: 'iframe',
+        src: `https://www.youtube-nocookie.com/embed/${yt[1]}?rel=0&modestbranding=1`,
+        label: 'Lesson video'
+      };
+    }
+
+    let vimeo = url.match(/vimeo\.com\/(?:video\/)?(\d+)/);
+    if (vimeo) {
+      return { kind: 'iframe', src: `https://player.vimeo.com/video/${vimeo[1]}`, label: 'Lesson video' };
+    }
+
+    let drive = url.match(/drive\.google\.com\/file\/d\/([^/]+)/);
+    if (drive) {
+      return {
+        kind: 'iframe',
+        src: `https://drive.google.com/file/d/${drive[1]}/preview`,
+        label: 'Lesson video'
+      };
+    }
+
+    if (/\.(mp4|webm|ogg|m3u8)(\?|#|$)/i.test(url)) {
+      return { kind: 'video', src: url, label: 'Lesson video' };
+    }
+
+    if (/youtube\.com|youtu\.be|vimeo\.com|drive\.google/i.test(url)) {
+      return { kind: 'iframe', src: url, label: 'Lesson video' };
+    }
+
+    return { kind: 'link', href: url, label: String(input || '').trim() || 'Watch video' };
   }
 
   function _mapApiConcept(card) {
@@ -35,21 +100,41 @@ const GKContentLoader = (() => {
     if (c.bharatiya_connection) examples.push(c.bharatiya_connection);
     if (Array.isArray(c.takeaway)) examples.push(...c.takeaway);
 
+    let videoTitle = c.video ? String(c.video).trim() : '';
+    let videoLink = (c.video_link || c.video_url || '').trim();
+
+    // Legacy: URL or iframe was pasted in "video" — treat as link, not title
+    if (!videoLink && videoTitle) {
+      const urlInVideo = extractVideoUrl(videoTitle);
+      if (urlInVideo || _isVideoHtml(videoTitle)) {
+        videoLink = urlInVideo || extractVideoUrl(videoTitle) || '';
+        videoTitle = '';
+      }
+    }
+
+    const videoEmbed = videoLink ? parseVideoEmbed(videoLink) : null;
+
     const visualParts = [];
     if (c.keyword) visualParts.push(`Keyword: ${c.keyword}`);
-    if (c.video) visualParts.push(`Video: ${c.video}`);
-    if (c.image) visualParts.push(c.image);
+    if (c.image && !/^https?:\/\//i.test(String(c.image).trim())) visualParts.push(c.image);
     if (c.observe) visualParts.push(`Observe: ${c.observe}`);
 
     return {
       title: card.concept_title || 'Concept',
       body: bodyParts.filter(Boolean).join('\n\n') || 'Read this concept carefully.',
+      keyword: c.keyword || null,
+      video: videoTitle || null,
+      videoTitle: videoTitle || null,
+      videoLink: videoLink || null,
+      videoUrl: videoLink || null,
+      videoEmbed,
+      image: c.image ? String(c.image).trim() : null,
+      observe: c.observe || null,
       visual: visualParts.join('\n') || '📖',
       examples: examples.length ? examples : ['See lesson content above.']
     };
   }
 
-  /** Skip trigger rows that are PDF-export JSON fragments, not readable lesson text. */
   function _isGarbageTriggerText(text) {
     const t = String(text || '').trim();
     if (!t || t.length < 12) return true;
@@ -66,8 +151,8 @@ const GKContentLoader = (() => {
     return {
       title: String(title).slice(0, 120),
       body: String(body).slice(0, 4000),
-      visual: '📖',
-      examples: ['Content from Gurukul published curriculum.']
+      visual: '✨',
+      examples: ['Think about this before you read the concept.']
     };
   }
 
@@ -89,6 +174,24 @@ const GKContentLoader = (() => {
       .map(h => (h && (h.content || h.title)) || '')
       .filter(Boolean)
       .map(t => String(t).slice(0, 280));
+  }
+
+  /** Short blurb for Today's Schedule cards (first curiosity hook or concept). */
+  function scheduleDescriptionFromContent(content) {
+    if (!content) return null;
+    const hooks = _asList(content.hooks);
+    for (const hook of hooks) {
+      const text = String((hook && hook.content) || '').trim();
+      if (text.length >= 20) return text.slice(0, 220);
+    }
+    for (const card of _asList(content.concepts)) {
+      const c = card.content || {};
+      const text = String(c.meaning || c.definition || (card.experience && card.experience.narration) || '').trim();
+      if (text.length >= 20) return text.slice(0, 220);
+    }
+    const deep = content.deepDive && String(content.deepDive.content || '').trim();
+    if (deep && deep.length >= 20) return deep.slice(0, 220);
+    return null;
   }
 
   function _parseMcqQuestion(text, answer, id) {
@@ -127,6 +230,11 @@ const GKContentLoader = (() => {
     };
   }
 
+  function _mapLightAssessmentQuestions(block, blockIndex) {
+    const qs = _asList(block && block.questions);
+    return qs.map((q, qi) => _parseMcqQuestion(q.question, q.answer, `api-la-${blockIndex}-${qi}`));
+  }
+
   function _mapAssessments(assessments) {
     const out = [];
     if (!assessments || typeof assessments !== 'object') return out;
@@ -134,10 +242,7 @@ const GKContentLoader = (() => {
     const light = _asList(assessments.light_assessments);
     let n = 0;
     for (const block of light) {
-      const qs = _asList(block && block.questions);
-      for (const q of qs) {
-        out.push(_parseMcqQuestion(q.question, q.answer, `api-la-${n++}`));
-      }
+      out.push(..._mapLightAssessmentQuestions(block, n++));
     }
 
     const finalQ = _asList(assessments.final_assessment && assessments.final_assessment.questions);
@@ -145,6 +250,81 @@ const GKContentLoader = (() => {
       out.push(_parseMcqQuestion(q.question, q.answer, `api-fin-${n++}`));
     }
     return out;
+  }
+
+  function _mapFinalAssessment(assessments) {
+    if (!assessments || !assessments.final_assessment) return [];
+    return _asList(assessments.final_assessment.questions).map((q, i) =>
+      _parseMcqQuestion(q.question, q.answer, `api-fin-${i}`)
+    );
+  }
+
+  function _mapDeepDive(deepDive) {
+    if (!deepDive || typeof deepDive !== 'object') return null;
+    const body = String(deepDive.content || '').trim();
+    if (!body) return null;
+    return {
+      title: deepDive.title || 'Deep Dive',
+      body: body.slice(0, 12000),
+      visual: '🔍',
+      examples: ['Take your time — think deeply about each question.']
+    };
+  }
+
+  function _mapProjectZone(project) {
+    if (!project || typeof project !== 'object') return null;
+    const projects = _asList(project.projects);
+    if (!projects.length && !project.content) return null;
+    const lines = projects.map(p => {
+      const title = p.project_title || p.title || 'Project';
+      const obj = p.project_objective || p.objective || '';
+      return `• ${title}${obj ? ` — ${obj}` : ''}`;
+    });
+    const body = lines.length
+      ? lines.join('\n')
+      : String(project.content || '').slice(0, 8000);
+    return {
+      title: project.title || 'Project Activity',
+      body,
+      visual: '🛠️',
+      projects,
+      examples: ['Choose one project and share with your mentor when ready.']
+    };
+  }
+
+  function _buildLessonCycles(content) {
+    const hooks = _asList(content.hooks);
+    let concepts = _asList(content.concepts)
+      .map(_mapApiConcept)
+      .filter(c => c.body && c.body !== 'Read this concept carefully.');
+
+    if (!concepts.length) {
+      concepts = _asList(content.triggers).map(_mapTriggerItem).filter(Boolean);
+    }
+
+    const lightBlocks = _asList(content.assessments && content.assessments.light_assessments);
+    const n = Math.max(hooks.length, concepts.length, lightBlocks.length, 0);
+    const cycles = [];
+
+    for (let i = 0; i < n; i++) {
+      const hook = hooks[i] ? _mapHookItem(hooks[i], i) : null;
+      const concept = concepts[i] || null;
+      const lightAssessment = lightBlocks[i]
+        ? _mapLightAssessmentQuestions(lightBlocks[i], i)
+        : [];
+      if (!hook && !concept) continue;
+      cycles.push({
+        hook,
+        concept: concept || {
+          title: hook.title,
+          body: hook.body,
+          visual: hook.visual,
+          examples: hook.examples
+        },
+        lightAssessment
+      });
+    }
+    return cycles;
   }
 
   function _buildMcqGame(assessmentQuestions) {
@@ -173,28 +353,32 @@ const GKContentLoader = (() => {
     const st = _primarySubtopic(topic);
     if (!st) return content;
 
-    let concepts = _asList(content.concepts)
-      .map(_mapApiConcept)
-      .filter(c => c.body && c.body !== 'Read this concept carefully.');
+    const cycles = _buildLessonCycles(content);
+    const deepDive = _mapDeepDive(content.deepDive);
+    const finalAssessment = _mapFinalAssessment(content.assessments);
+    const project = _mapProjectZone(content.project);
 
-    if (!concepts.length) {
-      concepts = _asList(content.hooks).map(_mapHookItem);
+    if (cycles.length) {
+      st.lessonFlow = { cycles, deepDive, finalAssessment, project };
+      st.concepts = cycles.map(c => c.concept).filter(Boolean);
+    } else {
+      let concepts = _asList(content.concepts).map(_mapApiConcept)
+        .filter(c => c.body && c.body !== 'Read this concept carefully.');
+      if (!concepts.length) concepts = _asList(content.hooks).map(_mapHookItem);
+      if (!concepts.length) {
+        concepts = _asList(content.triggers).map(_mapTriggerItem).filter(Boolean);
+      }
+      if (!concepts.length) {
+        concepts = [{
+          title: topic.name,
+          body: 'Lesson content is not available yet for this topic.',
+          visual: '⚠️',
+          examples: ['Check published curriculum files for this topic.']
+        }];
+      }
+      st.concepts = concepts;
+      st.lessonFlow = null;
     }
-    if (!concepts.length) {
-      concepts = _asList(content.triggers)
-        .map(_mapTriggerItem)
-        .filter(Boolean);
-    }
-    if (!concepts.length) {
-      concepts = [{
-        title: topic.name,
-        body: 'Lesson content is not available yet for this topic. The published curriculum files may be missing or incomplete — ask your mentor to verify published/Grade_6 content for this subject.',
-        visual: '⚠️',
-        examples: ['Check that concept_cards and curiosity_hooks JSON files are populated for this topic.']
-      }];
-    }
-
-    st.concepts = concepts;
 
     const hints = _mapHookHints(content.hooks);
     if (hints.length) st.aiHints = hints;
@@ -206,7 +390,18 @@ const GKContentLoader = (() => {
       if (game) st.game = game;
     }
 
-    console.log('[GKContent] applied', concepts.length, 'concepts,', assessment.length, 'assessment items for', topic.name);
+    const scheduleBlurb = scheduleDescriptionFromContent(content);
+    if (scheduleBlurb) {
+      topic.scheduleDescription = scheduleBlurb;
+      topic.description = scheduleBlurb;
+    }
+
+    console.log(
+      '[GKContent] applied',
+      st.lessonFlow ? `${st.lessonFlow.cycles.length} cycles + chapter extras` : `${st.concepts.length} concepts`,
+      'for',
+      topic.name
+    );
     return content;
   }
 
@@ -231,25 +426,37 @@ const GKContentLoader = (() => {
     const folder = topic && topic.githubFolder;
     if (!topic || !subjectName || !folder) return null;
 
+    const key = _topicKey(subjectName, folder);
+    delete _cache[key];
     const content = await fetchContent(subjectName, folder);
     if (!content) return null;
     return _applyContentToTopic(topic, content);
   }
 
-  /** Preload all math/science topics that use githubFolder (before student opens a module). */
   async function preloadApiSubjects() {
     if (typeof GK_TOPICS === 'undefined') return;
+    const userId = typeof GKStore !== 'undefined' && GKStore.getCurrentUserId
+      ? GKStore.getCurrentUserId() : null;
+    const published = userId ? GKStore.getPublishedTopicIds(userId) : null;
     const jobs = [];
     for (const subject of GK_TOPICS.subjects) {
       if (!API_SUBJECT_IDS.includes(subject.id)) continue;
       for (const topic of subject.topics || []) {
         if (!topic.githubFolder) continue;
+        if (published && !published.has(topic.id)) continue;
         jobs.push(loadAndApply({ subject, topic }));
       }
     }
     await Promise.all(jobs);
-    console.log('[GKContent] preloaded', jobs.length, 'API topic(s)');
+    console.log('[GKContent] preloaded', jobs.length, 'published API topic(s)');
   }
 
-  return { fetchContent, loadAndApply, preloadApiSubjects };
+  return {
+    fetchContent,
+    loadAndApply,
+    preloadApiSubjects,
+    scheduleDescriptionFromContent,
+    extractVideoUrl,
+    parseVideoEmbed
+  };
 })();

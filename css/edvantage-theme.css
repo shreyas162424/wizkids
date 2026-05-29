@@ -664,6 +664,597 @@ body {
   gap: 16px !important;
 }
 
+/* ---- Compact vertical schedule (scrollable list + mentor button below) ---- */
+.screen-modules .screen-agent-row {
+  align-items: stretch !important;
+  min-height: calc(100vh - 72px) !important;
+}
+
+.screen-modules .modules-main-col {
+  display: flex !important;
+  flex-direction: column !important;
+  min-height: 0 !important;
+  height: calc(100vh - 72px) !important;
+  max-height: calc(100vh - 72px) !important;
+  overflow-x: hidden !important;
+  overflow-y: hidden !important;
+  padding-top: 1rem !important;
+  padding-bottom: 0.75rem !important;
+}
+
+.screen-modules .mrb-wrap {
+  flex-shrink: 0 !important;
+  margin: 0.75rem 0 0 !important;
+  padding: 0 !important;
+}
+
+.screen-modules .mrb-wrap .mrb-hint {
+  display: none !important;
+}
+
+.screen-modules .mrb-btn {
+  padding: 0.45rem 1rem !important;
+  font-size: 12px !important;
+}
+
+.screen-modules .demo-helpers {
+  display: none !important;
+}
+
+.screen-modules .modules-page-topbar {
+  margin-bottom: 0.75rem !important;
+  flex-shrink: 0 !important;
+}
+
+.screen-modules .modules-greeting {
+  font-size: clamp(1.5rem, 2.5vw, 1.85rem) !important;
+}
+
+.screen-modules .modules-greeting-sub {
+  font-size: 13px !important;
+  margin-top: 4px !important;
+}
+
+.ev-status-bar-compact {
+  padding: 10px 16px !important;
+  margin-bottom: 0.65rem !important;
+  flex-shrink: 0 !important;
+  gap: 12px !important;
+}
+
+.ev-status-bar-compact .ev-status-progress .top {
+  margin-bottom: 6px !important;
+  font-size: 12px !important;
+}
+
+.ev-status-bar-compact .ev-status-track {
+  height: 6px !important;
+}
+
+.ev-status-bar-compact .ev-status-time .big {
+  font-size: 1.1rem !important;
+}
+
+.ev-status-bar-compact .ev-status-time span:last-child {
+  font-size: 11px !important;
+}
+
+.screen-modules .ev-resume-card {
+  padding: 12px 16px !important;
+  margin-bottom: 0.65rem !important;
+  flex-shrink: 0 !important;
+}
+
+.screen-modules .ev-resume-title {
+  font-size: 1rem !important;
+}
+
+.screen-modules .modules-schedule-panel {
+  flex: 1 1 auto !important;
+  min-height: 0 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  overflow: hidden !important;
+}
+
+.ev-section-label-compact {
+  margin-bottom: 0.35rem !important;
+  flex-shrink: 0 !important;
+}
+
+.ev-section-label-compact .meta {
+  font-size: 11px !important;
+}
+
+.modules-content-wrap-schedule {
+  flex: 1 1 auto !important;
+  min-height: 0 !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  overflow: hidden !important;
+  display: flex !important;
+  flex-direction: column !important;
+}
+
+.vertical-schedule-fit {
+  flex: 1 1 auto !important;
+  min-height: 0 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  margin: 0 !important;
+  overflow: hidden !important;
+}
+
+.vertical-schedule-fit .vertical-schedule-list {
+  flex: 1 1 auto !important;
+  min-height: 0 !important;
+  justify-content: flex-start !important;
+  overflow-x: hidden !important;
+  overflow-y: auto !important;
+  -webkit-overflow-scrolling: touch;
+  gap: 10px !important;
+  padding: 4px 0 12px !important;
+}
+
+.vertical-schedule-list {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 10px !important;
+}
+
+/* Compact single-row schedule cards — fixed height, readable text */
+.screen-modules .vertical-schedule-section .today-lesson-card.schedule-card-compact {
+  flex: 0 0 auto !important;
+  min-height: 58px !important;
+  max-height: none !important;
+  height: auto !important;
+  overflow: visible !important;
+  background: #fff !important;
+  border: 1px solid var(--border) !important;
+  box-shadow: var(--sh1) !important;
+}
+
+.screen-modules .schedule-card-compact.schedule-lunch {
+  background: #faf6ee !important;
+  border-color: #e8dcc4 !important;
+}
+
+.schedule-card-compact .schedule-compact-row {
+  padding: 12px 16px !important;
+  min-height: 58px !important;
+  color: #1a2329 !important;
+}
+
+.schedule-compact-title {
+  flex: 1 1 auto !important;
+  min-width: 4rem !important;
+  margin: 0 !important;
+  padding: 0 10px !important;
+  text-align: center !important;
+  font-family: var(--font-display), Georgia, serif !important;
+  font-size: clamp(1.15rem, 2.2vw, 1.5rem) !important;
+  font-weight: 700 !important;
+  line-height: 1.25 !important;
+  color: #1a2329 !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+}
+
+.schedule-compact-spacer {
+  flex: 1 1 auto !important;
+  min-width: 0 !important;
+}
+
+.schedule-card-compact .schedule-compact-row > .tlc-subject {
+  flex-shrink: 0 !important;
+  font-size: 11px !important;
+  font-weight: 800 !important;
+  padding: 5px 10px !important;
+  color: #1a2329 !important;
+}
+
+.schedule-card-compact .schedule-compact-row > .schedule-time-range {
+  flex-shrink: 0 !important;
+  margin-left: 0 !important;
+  font-size: clamp(12px, 1.3vw, 14px) !important;
+  font-weight: 700 !important;
+  color: #3d4f5c !important;
+  white-space: nowrap !important;
+}
+
+.schedule-card-compact .schedule-compact-row > .schedule-status-tag {
+  flex-shrink: 0 !important;
+  font-size: 11px !important;
+  font-weight: 700 !important;
+  padding: 4px 10px !important;
+}
+
+.schedule-card-compact .schedule-compact-row > .schedule-drag-handle {
+  font-size: 16px !important;
+  color: #5a6772 !important;
+  line-height: 1 !important;
+}
+
+.schedule-lunch.schedule-card-compact .schedule-compact-row {
+  background: transparent !important;
+}
+
+/* Single outer timetable card — rows stacked inside */
+.schedule-timetable-card {
+  flex: 1 1 auto !important;
+  min-height: 0 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  border: 1px solid var(--border) !important;
+  border-radius: var(--rs) !important;
+  background: #fff !important;
+  box-shadow: var(--sh1) !important;
+  overflow: hidden !important;
+}
+
+.schedule-timetable-body {
+  flex: 1 1 auto !important;
+  min-height: 0 !important;
+  display: flex !important;
+  flex-direction: column !important;
+}
+
+.schedule-timetable-row {
+  flex: 1 1 0 !important;
+  min-height: 0 !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  padding: 6px 14px !important;
+  border-bottom: 1px solid var(--border) !important;
+  cursor: pointer !important;
+  background: #fff !important;
+}
+
+.schedule-timetable-row:last-child {
+  border-bottom: 0 !important;
+}
+
+.schedule-timetable-row.schedule-lunch {
+  background: #faf6ee !important;
+  cursor: default !important;
+}
+
+.schedule-timetable-row.vsched-drag-over {
+  background: color-mix(in srgb, var(--primary) 8%, #fff) !important;
+  outline: 2px dashed var(--primary) !important;
+  outline-offset: -2px !important;
+}
+
+.schedule-timetable-row.vsched-dragging {
+  opacity: 0.55 !important;
+}
+
+.schedule-timetable-row .tlc-summary,
+.schedule-timetable-row .tlc-desc,
+.schedule-timetable-row .tlc-progress-row,
+.schedule-timetable-row .tlc-divider,
+.schedule-timetable-row .tlc-footer,
+.schedule-timetable-row .tlc-cta,
+.schedule-timetable-row .schedule-preview-popover {
+  display: none !important;
+}
+
+/* Compact vertical timetable rows */
+.screen-modules .vertical-schedule-section .today-lesson-card.schedule-card-compact {
+  flex-direction: row !important;
+  align-items: stretch !important;
+  cursor: pointer !important;
+}
+
+.screen-modules .schedule-card-compact:hover {
+  transform: none !important;
+}
+
+.screen-modules .schedule-card-compact .tlc-summary,
+.screen-modules .schedule-card-compact .schedule-card-header,
+.screen-modules .schedule-card-compact .tlc-desc,
+.screen-modules .schedule-card-compact .tlc-progress-row,
+.screen-modules .schedule-card-compact .tlc-progress-track,
+.screen-modules .schedule-card-compact .tlc-divider,
+.screen-modules .schedule-card-compact .tlc-footer,
+.screen-modules .schedule-card-compact .tlc-cta {
+  display: none !important;
+}
+
+.screen-modules .schedule-card-compact h3.schedule-chapter-title {
+  margin: 0 !important;
+  font-size: clamp(0.85rem, 1.2vw, 1rem) !important;
+}
+
+.schedule-card-compact {
+  padding: 0 !important;
+  display: flex !important;
+  align-items: stretch !important;
+}
+
+.schedule-card-compact .schedule-compact-row,
+.schedule-timetable-row {
+  display: flex !important;
+  align-items: center !important;
+  gap: 10px !important;
+  width: 100% !important;
+  min-height: 58px !important;
+  box-sizing: border-box !important;
+}
+
+.schedule-compact-main {
+  flex: 1 1 auto !important;
+  min-width: 0 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: center !important;
+  gap: 2px !important;
+}
+
+.schedule-compact-main .schedule-chapter-title {
+  margin: 0 !important;
+  padding: 0 !important;
+  font-family: var(--font-display) !important;
+  font-size: clamp(0.82rem, 1.2vw, 0.95rem) !important;
+  font-weight: 600 !important;
+  line-height: 1.2 !important;
+  color: var(--ink) !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+}
+
+.schedule-lunch .schedule-compact-main .schedule-chapter-title {
+  font-weight: 500 !important;
+  color: var(--ink-soft) !important;
+}
+
+.schedule-card-compact .schedule-drag-handle {
+  flex-shrink: 0 !important;
+  font-size: 12px !important;
+  padding: 0 2px !important;
+}
+
+.schedule-card-compact .tlc-subject {
+  flex-shrink: 0 !important;
+  font-size: 10px !important;
+  padding: 3px 8px !important;
+  max-width: 7.5rem !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+}
+
+.schedule-compact-meta {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: flex-end !important;
+  justify-content: center !important;
+  gap: 4px !important;
+  flex-shrink: 0 !important;
+  margin-left: auto !important;
+  text-align: right !important;
+}
+
+.schedule-card-compact .schedule-time-range {
+  font-size: clamp(10px, 1.1vw, 12px) !important;
+  line-height: 1.2 !important;
+  font-weight: 600 !important;
+  color: var(--ink-soft) !important;
+  white-space: nowrap !important;
+}
+
+.schedule-card-compact .schedule-status-tag.lc-tag,
+.schedule-timetable-row .schedule-status-tag.lc-tag {
+  position: static !important;
+  top: auto !important;
+  right: auto !important;
+  font-size: 11px !important;
+  padding: 4px 10px !important;
+  letter-spacing: 0.02em !important;
+  white-space: nowrap !important;
+}
+
+.schedule-preview-popover {
+  display: none !important;
+  position: absolute !important;
+  left: 0 !important;
+  bottom: calc(100% + 8px) !important;
+  z-index: 40 !important;
+  width: min(280px, 70vw) !important;
+  padding: 10px 12px !important;
+  background: var(--ink) !important;
+  color: #fff !important;
+  border-radius: var(--rs) !important;
+  box-shadow: var(--sh2) !important;
+  pointer-events: none !important;
+  text-align: left !important;
+}
+
+.schedule-preview-popover::after {
+  content: '' !important;
+  position: absolute !important;
+  left: 16px !important;
+  top: 100% !important;
+  border: 6px solid transparent !important;
+  border-top-color: var(--ink) !important;
+}
+
+.schedule-preview-label {
+  display: block !important;
+  font-size: 9px !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.08em !important;
+  text-transform: uppercase !important;
+  opacity: 0.75 !important;
+  margin-bottom: 4px !important;
+}
+
+.schedule-preview-popover p {
+  margin: 0 !important;
+  font-size: 12px !important;
+  line-height: 1.45 !important;
+  font-weight: 500 !important;
+}
+
+.schedule-chapter-wrap:hover .schedule-preview-popover,
+.schedule-chapter-wrap:focus-within .schedule-preview-popover {
+  display: block !important;
+}
+
+.vertical-schedule-section .today-lesson-card.schedule-card {
+  position: relative !important;
+  min-height: auto !important;
+}
+
+.schedule-card .schedule-card-header {
+  display: flex !important;
+  align-items: flex-start !important;
+  justify-content: space-between !important;
+  gap: 12px !important;
+  padding: 12px 16px 0 !important;
+}
+
+.schedule-card .schedule-card-left {
+  display: flex !important;
+  align-items: center !important;
+  gap: 10px !important;
+  flex: 1 !important;
+  min-width: 0 !important;
+  flex-wrap: wrap !important;
+}
+
+.schedule-card .schedule-card-left .tlc-subject {
+  max-width: none !important;
+}
+
+.schedule-card .schedule-card-header .schedule-drag-handle {
+  flex-shrink: 0 !important;
+}
+
+.schedule-card .schedule-card-meta {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: flex-end !important;
+  gap: 6px !important;
+  min-width: 0 !important;
+  flex: 1 !important;
+}
+
+.schedule-card .schedule-time-range {
+  font-size: 12px !important;
+  font-weight: 600 !important;
+  letter-spacing: 0.02em !important;
+  color: var(--ink-soft) !important;
+  white-space: nowrap !important;
+  text-align: right !important;
+}
+
+.schedule-card .schedule-status-tag.lc-tag {
+  position: static !important;
+  top: auto !important;
+  right: auto !important;
+  margin: 0 !important;
+}
+
+.schedule-card .schedule-drag-handle {
+  font-size: 16px !important;
+  color: #5a6772 !important;
+  cursor: grab !important;
+  user-select: none !important;
+  -webkit-user-select: none !important;
+  touch-action: none !important;
+  flex-shrink: 0 !important;
+  padding: 4px 8px !important;
+  line-height: 1 !important;
+}
+
+.schedule-card .schedule-drag-handle:active {
+  cursor: grabbing !important;
+}
+
+.schedule-card .schedule-drag-handle.is-disabled {
+  opacity: 0.25 !important;
+  cursor: default !important;
+}
+
+.vertical-schedule-list.is-vsched-dragging {
+  cursor: grabbing !important;
+}
+
+.vertical-schedule-list.is-vsched-dragging .vsched-draggable:not(.vsched-dragging) {
+  cursor: grabbing !important;
+}
+
+.schedule-card.vsched-draggable:active .schedule-drag-handle:not(.is-disabled) {
+  cursor: grabbing !important;
+}
+
+.schedule-card.schedule-lunch {
+  background: #faf6ee !important;
+  border-color: #e8dcc4 !important;
+  cursor: default !important;
+}
+
+.vertical-schedule-section .schedule-card .tlc-summary {
+  min-height: auto !important;
+  padding: 10px 16px 16px !important;
+}
+
+.vertical-schedule-section .schedule-card .tlc-summary h3 {
+  margin-top: 0 !important;
+}
+
+.vertical-schedule-section .tlc-footer-cta-only {
+  justify-content: flex-end !important;
+}
+
+.lesson-flow-card .lesson-phase-badge {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--primary-dk);
+  background: rgba(31, 169, 199, 0.12);
+  padding: 4px 10px;
+  border-radius: 99px;
+  margin-bottom: 10px;
+}
+
+.schedule-card.schedule-lunch .tlc-subject {
+  background: #f0e8d0 !important;
+  color: #5c4020 !important;
+}
+
+.schedule-card.schedule-lunch .tlc-dot {
+  background: #c4a574 !important;
+}
+
+.schedule-card.vsched-dragging,
+.today-lesson-card.vsched-dragging {
+  opacity: 0.55 !important;
+}
+
+.schedule-card.vsched-dragging *,
+.today-lesson-card.vsched-dragging * {
+  pointer-events: none !important;
+}
+
+.schedule-card.vsched-drag-over {
+  outline: 2px dashed var(--primary) !important;
+  outline-offset: 2px !important;
+}
+
+.vertical-schedule-hint {
+  margin: 10px 0 0 !important;
+  font-size: 12px !important;
+  color: var(--ink-faint) !important;
+  text-align: center !important;
+}
+
 .today-lesson-card {
   background: var(--surface) !important;
   border: 1px solid var(--divider) !important;
@@ -946,7 +1537,8 @@ body {
    LEARNING SESSION — split chat (Krishna) + workspace (POC)
    ============================================================ */
 
-.screen-learning.learning-session-active .learning-session {
+.screen-learning.learning-session-active .learning-session,
+.screen-assessment.lesson-session-active .learning-session {
   display: grid;
   grid-template-columns: minmax(320px, 420px) minmax(0, 1fr);
   min-height: calc(100vh - 72px);
@@ -955,12 +1547,14 @@ body {
   overflow: hidden;
 }
 
-.screen-learning.learning-session-active .app-header {
+.screen-learning.learning-session-active .app-header,
+.screen-assessment.lesson-session-active .app-header {
   flex-shrink: 0;
 }
 
 /* Chat pane (left) */
-.screen-learning .learning-chat-pane {
+.screen-learning .learning-chat-pane,
+.screen-assessment.lesson-session-active .learning-chat-pane {
   position: relative;
   display: flex;
   flex-direction: column;
@@ -1102,6 +1696,68 @@ body {
   min-height: 0;
 }
 
+/* Compact lesson chat — no header/avatar; input always visible */
+.screen-learning .agent-session-pane-compact,
+.screen-assessment.lesson-session-active .agent-session-pane-compact {
+  display: flex !important;
+  flex-direction: column !important;
+  min-height: 0 !important;
+  position: relative !important;
+  top: auto !important;
+  left: auto !important;
+  width: 100% !important;
+  height: 100% !important;
+  padding: 0 !important;
+  overflow: hidden !important;
+}
+
+.screen-learning .agent-session-pane-compact .chat-header,
+.screen-learning .agent-session-pane-compact .learning-chat-hero,
+.screen-learning .agent-session-pane-compact .agent-avatar-wrap,
+.screen-assessment.lesson-session-active .agent-session-pane-compact .chat-header,
+.screen-assessment.lesson-session-active .agent-session-pane-compact .learning-chat-hero,
+.screen-assessment.lesson-session-active .agent-session-pane-compact .agent-avatar-wrap {
+  display: none !important;
+}
+
+.screen-learning .learning-chat-stream-compact,
+.screen-assessment.lesson-session-active .learning-chat-stream-compact {
+  flex: 1 1 auto !important;
+  min-height: 0 !important;
+  padding: 16px 20px !important;
+  justify-content: flex-start !important;
+}
+
+.screen-learning .msg-compact {
+  margin-top: 0 !important;
+}
+
+.screen-learning .learning-chat-input,
+.screen-assessment.lesson-session-active .learning-chat-input {
+  flex-shrink: 0 !important;
+  z-index: 2;
+  position: relative;
+  box-shadow: 0 -4px 12px rgba(26, 35, 41, 0.06);
+}
+
+.screen-learning .learning-chat-input .agent-inline-input,
+.screen-assessment.lesson-session-active .learning-chat-input .agent-inline-input {
+  min-width: 0;
+  width: 100%;
+  color: var(--ink) !important;
+}
+
+.screen-learning .learning-chat-input .agent-inline-input::placeholder,
+.screen-assessment.lesson-session-active .learning-chat-input .agent-inline-input::placeholder {
+  color: var(--ink-soft) !important;
+  opacity: 1 !important;
+}
+
+.screen-learning .learning-chat-input .input-row,
+.screen-assessment.lesson-session-active .learning-chat-input .input-row {
+  min-height: 48px;
+}
+
 .screen-learning .learning-chat-hero {
   display: flex;
   justify-content: center;
@@ -1118,7 +1774,8 @@ body {
   height: auto;
 }
 
-.screen-learning .msg.prajna {
+.screen-learning .msg.prajna,
+.screen-assessment.lesson-session-active .msg.prajna {
   display: flex;
   gap: 10px;
   max-width: 100%;
@@ -1149,7 +1806,9 @@ body {
 }
 
 .screen-learning .msg.prajna .bubble,
-.screen-learning .msg.prajna .agent-speech-bubble {
+.screen-learning .msg.prajna .agent-speech-bubble,
+.screen-assessment.lesson-session-active .msg.prajna .bubble,
+.screen-assessment.lesson-session-active .msg.prajna .agent-speech-bubble {
   padding: 12px 16px;
   border-radius: var(--rm);
   border-bottom-left-radius: 4px;
@@ -1162,18 +1821,21 @@ body {
   text-align: left !important;
 }
 
-.screen-learning .msg.prajna .agent-speech-bubble::after {
+.screen-learning .msg.prajna .agent-speech-bubble::after,
+.screen-assessment.lesson-session-active .msg.prajna .agent-speech-bubble::after {
   display: none;
 }
 
-.screen-learning .msg-meta {
+.screen-learning .msg-meta,
+.screen-assessment.lesson-session-active .msg-meta {
   font-size: 11px;
   color: var(--ink-soft);
   margin-top: 6px;
   padding: 0 4px;
 }
 
-.screen-learning .chat-input {
+.screen-learning .chat-input,
+.screen-assessment.lesson-session-active .chat-input {
   flex-shrink: 0;
   padding: 14px 20px 18px;
   border-top: 1px solid var(--divider);
@@ -1247,7 +1909,8 @@ body {
 }
 
 /* Workspace pane (right) */
-.screen-learning .learning-workspace-pane {
+.screen-learning .learning-workspace-pane,
+.screen-assessment.lesson-session-active .learning-workspace-pane {
   display: flex;
   flex-direction: column;
   height: 100%;
@@ -1380,11 +2043,14 @@ body {
   text-align: right;
 }
 
-.screen-learning .ws-body {
+.screen-learning .ws-body,
+.screen-assessment.lesson-session-active .ws-body {
   flex: 1;
   overflow-y: auto;
+  overflow-x: hidden;
   padding: 28px 32px;
   min-height: 0;
+  -webkit-overflow-scrolling: touch;
 }
 
 .screen-learning .learning-main {
@@ -1446,6 +2112,104 @@ body {
   background: transparent;
 }
 
+.screen-learning .concept-media {
+  margin: 16px 0 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 12px !important;
+}
+
+.screen-learning .concept-meta-line {
+  font-size: 14px !important;
+  line-height: 1.55 !important;
+  color: var(--ink-soft) !important;
+  padding: 12px 14px !important;
+  background: var(--bg) !important;
+  border: 1px solid var(--divider) !important;
+  border-radius: var(--rm) !important;
+}
+
+.screen-learning .concept-video-wrap {
+  background: var(--bg) !important;
+  border: 1px solid var(--divider) !important;
+  border-radius: var(--rm) !important;
+  padding: 12px !important;
+  overflow: hidden !important;
+}
+
+.screen-learning .concept-video-label {
+  font-size: 14px !important;
+  font-weight: 600 !important;
+  letter-spacing: 0 !important;
+  text-transform: none !important;
+  color: var(--ink) !important;
+  margin-bottom: 10px !important;
+  line-height: 1.4 !important;
+}
+
+.screen-learning .concept-video-placeholder {
+  min-height: 200px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  text-align: center !important;
+  padding: 24px 16px !important;
+  border-radius: calc(var(--rm) - 4px) !important;
+  background: #f4f6f8 !important;
+  border: 2px dashed var(--divider) !important;
+}
+
+.screen-learning .concept-video-placeholder-text {
+  margin: 0 !important;
+  font-size: 14px !important;
+  font-weight: 500 !important;
+  color: var(--ink-soft) !important;
+  max-width: 280px !important;
+  line-height: 1.5 !important;
+}
+
+.screen-learning .concept-video-frame {
+  position: relative !important;
+  width: 100% !important;
+  padding-bottom: 56.25% !important;
+  height: 0 !important;
+  border-radius: calc(var(--rm) - 4px) !important;
+  overflow: hidden !important;
+  background: #0f172a !important;
+}
+
+.screen-learning .concept-video-frame iframe {
+  position: absolute !important;
+  top: 0 !important;
+  left: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  border: 0 !important;
+}
+
+.screen-learning .concept-video-native {
+  width: 100% !important;
+  max-height: 420px !important;
+  border-radius: calc(var(--rm) - 4px) !important;
+  background: #000 !important;
+}
+
+.screen-learning .concept-image-wrap img {
+  width: 100% !important;
+  max-height: 360px !important;
+  object-fit: contain !important;
+  border-radius: var(--rm) !important;
+}
+
+.screen-learning .concept-visual-legacy code {
+  font-family: var(--font-display);
+  font-size: 1rem;
+  font-weight: 500;
+  color: var(--ink);
+  background: transparent;
+  white-space: pre-wrap;
+}
+
 .screen-learning .concept-actions .btn-primary,
 .screen-learning .concept-actions .btn-accent {
   border-radius: var(--rs) !important;
@@ -1455,26 +2219,38 @@ body {
 /* Dhyana mode in session layout */
 .screen-learning .agent-session-pane.dhyana-active .chat-stream,
 .screen-learning .agent-session-pane.dhyana-active .chat-input,
-.screen-learning .agent-session-pane.dhyana-active .chat-header {
+.screen-learning .agent-session-pane.dhyana-active .chat-header,
+.screen-assessment.lesson-session-active .agent-session-pane.dhyana-active .chat-stream,
+.screen-assessment.lesson-session-active .agent-session-pane.dhyana-active .chat-input,
+.screen-assessment.lesson-session-active .agent-session-pane.dhyana-active .chat-header {
   opacity: 0;
   pointer-events: none;
 }
 
 @media (max-width: 1100px) {
-  .screen-learning.learning-session-active .learning-session {
+  .screen-learning.learning-session-active .learning-session,
+  .screen-assessment.lesson-session-active .learning-session {
     grid-template-columns: 1fr;
     grid-template-rows: minmax(280px, 42vh) 1fr;
     height: auto;
     min-height: calc(100vh - 72px);
   }
 
-  .screen-learning .learning-chat-pane {
+  .screen-learning .learning-chat-pane,
+  .screen-assessment.lesson-session-active .learning-chat-pane {
     border-right: none;
     border-bottom: 1px solid var(--divider);
     max-height: 42vh;
+    min-height: 220px;
   }
 
-  .screen-learning .ws-body {
+  .screen-learning .agent-session-pane-compact .learning-chat-input,
+  .screen-assessment.lesson-session-active .agent-session-pane-compact .learning-chat-input {
+    padding-bottom: 14px !important;
+  }
+
+  .screen-learning .ws-body,
+  .screen-assessment.lesson-session-active .ws-body {
     padding: 20px 16px;
   }
 }
@@ -1501,5 +2277,20 @@ body {
   .modules-page-topbar {
     flex-direction: column;
     align-items: flex-start;
+  }
+
+  .screen-modules .modules-main-col {
+    height: auto !important;
+    max-height: none !important;
+    overflow: visible !important;
+  }
+
+  .screen-modules .modules-schedule-panel {
+    overflow: visible !important;
+  }
+
+  .vertical-schedule-fit .vertical-schedule-list {
+    overflow-y: auto !important;
+    max-height: 55vh !important;
   }
 }

@@ -33,7 +33,7 @@ const GK_TOPICS = {
         {
           id: "fractions",
           name: "Symmetry",
-          description: "Symmetry in shapes and patterns — content loaded from Gurukul API",
+          description: "Discover symmetry in shapes, patterns, and the world around you.",
           icon: "🔄",
           xp: 150,
           mandatory: true,
@@ -44,7 +44,7 @@ const GK_TOPICS = {
               id: "symmetry-core",
               name: "Symmetry",
               lessonPrefix: "EXP",
-              description: "Lesson content is provided by the content API (published/Grade_6/Mathematics/Symmetry).",
+              description: "Guided lesson from your published Grade 6 mathematics curriculum.",
               xp: 50,
               subtopicType: "core",
               mandatory: true,
@@ -66,7 +66,7 @@ const GK_TOPICS = {
         {
           id: "gravity",
           name: "The Wonderful World of Science",
-          description: "Explore science through curiosity and observation — content loaded from Gurukul API",
+          description: "Explore science through curiosity, observation, and everyday mysteries.",
           icon: "🔬",
           xp: 180,
           mandatory: true,
@@ -75,9 +75,9 @@ const GK_TOPICS = {
           subtopics: [
             {
               id: "wonderful-world-core",
-              name: "Science Explorer",
+              name: "The Wonderful World of Science",
               lessonPrefix: "EXP",
-              description: "Lesson content is provided by the content API (published/Grade_6/Science/The_Wonderful_World_of_Science).",
+              description: "Guided lesson from your published Grade 6 science curriculum.",
               xp: 55,
               subtopicType: "core",
               mandatory: true,

@@ -11,6 +11,11 @@
     "   Science     : gravity    → API folder The_Wonderful_World_of_Science",
     "",
     " After editing, restart the server or POST /api/config/reload",
+    "",
+    " PUBLISHED FLAG:",
+    "   published: true  → topic is reviewed and shown in student timetable",
+    "   published: false → topic is hidden from timetable (not yet reviewed)",
+    "   To show a new topic: set published to true and reload the server.",
     "============================================================="
   ],
 
@@ -22,8 +27,8 @@
       "grade": "6",
       "isActive": true,
       "topics": [
-        { "topicId": "fractions", "order": 1, "required": true },
-        { "topicId": "gravity",   "order": 2, "required": true }
+        { "topicId": "fractions", "order": 1, "required": true, "published": true },
+        { "topicId": "gravity",   "order": 2, "required": true, "published": true }
       ]
     },
     {
@@ -33,8 +38,8 @@
       "grade": "6",
       "isActive": true,
       "topics": [
-        { "topicId": "fractions", "order": 1, "required": true },
-        { "topicId": "gravity",   "order": 2, "required": true }
+        { "topicId": "fractions", "order": 1, "required": true, "published": true },
+        { "topicId": "gravity",   "order": 2, "required": true, "published": true }
       ]
     }
   ],

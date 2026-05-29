@@ -72,11 +72,10 @@ const GKAssistant = (() => {
 
   function init(userId) {
     _userId = userId || null;
-    try {
-      let saved = localStorage.getItem(_storageKey());
-      if (saved === 'arjuna') saved = 'radha';
-      if (saved && getById(saved)) _selectedId = saved;
-    } catch (_) { /* ignore */ }
+    const cfg = getConfigSync();
+    if (cfg.defaultAssistantId && getById(cfg.defaultAssistantId)) {
+      _selectedId = cfg.defaultAssistantId;
+    }
     if (typeof window.GKAgent !== 'undefined' && GKAgent.setStudentAssistant) {
       GKAgent.setStudentAssistant(_selectedId);
     }
@@ -210,7 +209,7 @@ const GKAssistant = (() => {
       if (res.ok) {
         _config = await res.json();
         if (_config.defaultAssistantId && getById(_config.defaultAssistantId)) {
-          if (!localStorage.getItem(_storageKey())) _selectedId = _config.defaultAssistantId;
+          _selectedId = _config.defaultAssistantId;
         }
         return _config;
       }

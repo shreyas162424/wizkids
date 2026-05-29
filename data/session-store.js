@@ -689,6 +689,25 @@ const GKStore = (() => {
       .map(t => t.topicId);
   }
 
+  /**
+   * Topic IDs marked published in the student's active learning path (from SQLite via /api/init).
+   * Timetable and schedule only show modules whose topicId is in this set.
+   */
+  function getPublishedTopicIds(userId) {
+    const details = getStudentLearningPathDetails(userId);
+    if (!details || !details.topics.length) return null;
+    const topics = details.topics;
+    const anyExplicit = topics.some(t => t.isPublished === true);
+    if (!anyExplicit) {
+      return new Set(topics.map(t => t.topicId));
+    }
+    return new Set(
+      topics
+        .filter(t => t.isPublished === true)
+        .map(t => t.topicId)
+    );
+  }
+
   // ── Public API ────────────────────────────────────────────────────────────
   // Identical surface to the previous sql.js version.
 
@@ -715,6 +734,6 @@ const GKStore = (() => {
     getBadges, saveBadges, getStreak, saveStreak,
     saveMentorMoodLog, getMentorMoodLog,
     getStudentLearningPath, getStudentLearningPathDetails,
-    getAllLearningPaths, getStudentTopicIds
+    getAllLearningPaths, getStudentTopicIds, getPublishedTopicIds
   };
 })();

@@ -98,7 +98,7 @@ const GKDatabase = (() => {
         <p style="font-size:2rem;margin:0 0 0.5rem;">🕉️</p>
         <h1 style="font-size:1.25rem;margin:0 0 0.75rem;">Cannot reach the Gurukul server</h1>
         <p style="color:#5A6772;line-height:1.5;margin:0 0 1.25rem;">${reason}</p>
-        <p style="font-size:0.9rem;color:#5A6772;line-height:1.5;margin:0;">In a terminal, run:<br><code style="display:inline-block;margin-top:0.5rem;padding:0.35rem 0.6rem;background:#EDF3F6;border-radius:6px;">cd wizkids && npm start</code><br>Then open <a href="/student.html">http://localhost:3000/student.html</a> (not a file:// link).</p>
+        <p style="font-size:0.9rem;color:#5A6772;line-height:1.5;margin:0;">Start the server:<br><code style="display:inline-block;margin-top:0.5rem;padding:0.35rem 0.6rem;background:#EDF3F6;border-radius:6px;">cd wizkids && npm start</code><br>Or use Docker on port 3000. If port 3000 is busy, run <code style="padding:0.2rem 0.4rem;background:#EDF3F6;border-radius:4px;">PORT=3001 npm start</code>.<br>Open <a href="/student.html">http://localhost:3000/student.html</a> (not file://).</p>
       </div>`;
   }
 

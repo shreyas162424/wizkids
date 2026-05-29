@@ -46,6 +46,8 @@ const GKApp = (() => {
     isDragging: false,
     _selectedVibe: null,
     phase: 'concepts',     // 'concepts' | 'game' | null
+    lessonPhase: null,     // hook | concept | deep-dive | project (API lesson flow)
+    _lessonFlowMode: null, // 'light' | 'final' while in assessment step of flow
     gameState: {},
     assessmentTopicId: null,
     sessionXP: 0,
@@ -61,8 +63,14 @@ const GKApp = (() => {
     expandedLessonSubjectId: null,     // tracks which lesson summary card is expanded
     optionalSubtopicsExpanded: false, // whether optional subtopics panel is open
     expandedSubtopicIdx: 0,           // which subtopic row is expanded in classroom view
-    ttFlexOrder: null,                // user-reordered flex-slot assignments [{subjectId,topicId}...]
-    ttDragSrc: null,                // flex-position index being dragged
+    ttFlexOrder: null,                // legacy horizontal timetable (unused)
+    ttDragSrc: null,
+    verticalSchedule: null,           // [{ type, subjectId?, topicId?, startLabel }]
+    verticalDragSrc: null,
+    verticalDropTarget: null,
+    verticalDragCommitted: false,
+    verticalSuppressClick: false,
+    vschedDidMove: false,             // pointer drag moved (suppress row click)
     _idleTimer: null,                 // for 5-minute assessment reminder
     _topicTimer: null,                // for 3-minute "2 mins left" message
     _lastAssessmentScore: null,       // track for retry logic
@@ -291,9 +299,17 @@ const GKApp = (() => {
   }
 
   function selectAssistant(id) {
+    if (!_canPickAssistant()) return;
     if (!GKAssistant.setSelected(id)) return;
     state.aiAssistantId = GKAssistant.getSelectedId();
     render();
+  }
+
+  /** AI guide picker is admin-only; students and mentors use the configured default. */
+  function _canPickAssistant() {
+    if (state.isMirror) return false;
+    const role = state.user && state.user.role;
+    return role === 'SME' || role === 'Admin' || role === 'Administrator';
   }
 
   function _syncAssistantForUser(userId) {
@@ -413,48 +429,32 @@ const GKApp = (() => {
     return renderHeader(true, true, _flowBackBtnIcon(tooltip, handlerName));
   }
 
-  /** EdVantage-style chat column for the learning session (Krishna / Prajna pane). */
-  function renderLearningAgentPane(screen, m, topic, subtopic) {
+  /** Compact chat column for lesson flow (no avatar/header; message + ask input). */
+  function renderCompactAgentPane(screen) {
     const msg = krishnaInitiatorFor(screen);
-    const phaseLabel = state.phase === 'game'
-      ? 'Practice activity'
-      : `Concept ${state.conceptIdx + 1} of ${subtopic.concepts.length}`;
+    const guideName = _assistantName();
 
     return `
-      <aside class="learning-chat-pane chat-pane agent-left-pane agent-session-pane" id="krishna-agent-pane">
+      <aside class="learning-chat-pane chat-pane agent-left-pane agent-session-pane agent-session-pane-compact" id="krishna-agent-pane">
         <div class="dhyana-backdrop" onclick="GKApp.toggleDhyanaMode()"></div>
-        <header class="chat-header">
-          <div class="chat-h-l">
-            <div class="prajna-mark" aria-hidden="true"></div>
-            <div>
-              <div class="chat-h-title">${_assistantName()} · ${m.subjectName}</div>
-              <div class="chat-h-sub"><span class="live-dot"></span>${phaseLabel}</div>
-            </div>
-          </div>
-        </header>
-        <div class="chat-stream">
-          <div class="learning-chat-hero agent-avatar-wrap" onclick="GKApp.toggleDhyanaMode()" title="Enter Dhyana Mode">
-            <div class="prana-pulse" id="krishna-prana-pulse"></div>
-            ${_assistantAvatarImg(screen)}
-          </div>
-          <div class="msg prajna">
-            <div class="msg-avatar" aria-hidden="true"></div>
+        <div class="chat-stream learning-chat-stream-compact">
+          <div class="msg prajna msg-compact">
             <div class="msg-body">
               <div class="bubble agent-speech-bubble" onclick="GKApp.toggleDhyanaMode()">
                 <div class="bubble-content" id="krishna-bubble-content">${GKApp.parseMD(msg)}</div>
                 <div class="bubble-actions">
                   <button type="button" class="dhyana-expand-btn" title="Expand for Deep Focus">⛶</button>
-                  <button type="button" class="gk-voice-toggle" onclick="event.stopPropagation(); GKVoice.toggle(this)" title="Toggle Krishna voice"
+                  <button type="button" class="gk-voice-toggle" onclick="event.stopPropagation(); GKVoice.toggle(this)" title="Toggle ${guideName} voice"
                     style="background:none;border:none;cursor:pointer;font-size:1.1rem;opacity:0.65;padding:0.15rem 0.3rem;line-height:1;" aria-label="Toggle voice">${GKVoice.isEnabled() ? '🔊' : '🔇'}</button>
                 </div>
               </div>
-              <div class="msg-meta">Krishna · your guide</div>
+              <div class="msg-meta">${guideName} · your guide</div>
             </div>
           </div>
         </div>
-        <footer class="chat-input">
+        <footer class="chat-input learning-chat-input">
           <div class="input-row agent-inline-chat">
-            <input type="text" id="agent-query-input" class="agent-inline-input" placeholder="Ask ${_assistantName()}…"
+            <input type="text" id="agent-query-input" class="agent-inline-input" placeholder="Type your question here…"
               onkeydown="if(event.key==='Enter') { event.stopPropagation(); GKApp.sendAgentQuery(); }" onclick="event.stopPropagation();">
             <button type="button" class="send-btn agent-inline-send" onclick="event.stopPropagation(); GKApp.sendAgentQuery()" title="Send" aria-label="Send">
               <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path fill="currentColor" d="M2.01 21L23 12L2.01 3L2 10l15 2l-15 2z"/></svg>
@@ -462,7 +462,6 @@ const GKApp = (() => {
           </div>
           <div class="input-hint">
             <span>Press Enter to send</span>
-            <button type="button" class="escalate" onclick="event.stopPropagation(); GKApp.toggleDhyanaMode()">Deep focus ⛶</button>
           </div>
         </footer>
         <button type="button" class="dhyana-close-btn" onclick="event.stopPropagation(); GKApp.toggleDhyanaMode()" title="Close Dhyana Mode">
@@ -470,6 +469,26 @@ const GKApp = (() => {
         </button>
         <div class="dhyana-header-glow"></div>
       </aside>`;
+  }
+
+  /** EdVantage-style chat column for the learning session (Krishna / Prajna pane). */
+  function renderLearningAgentPane(screen, m, topic, subtopic) {
+    return renderCompactAgentPane('learning');
+  }
+
+  function _renderLessonFlowAssessmentShell(agentScreen, bodyHtml) {
+    return `
+      <div class="screen screen-assessment lesson-session-active">
+        ${renderHeader()}
+        <div class="learning-session">
+          ${renderCompactAgentPane(agentScreen)}
+          <div class="learning-workspace-pane workspace-pane">
+            <div class="ws-body">
+              ${bodyHtml}
+            </div>
+          </div>
+        </div>
+      </div>`;
   }
 
   // ---- SCREEN 1: Login ----
@@ -905,19 +924,156 @@ const GKApp = (() => {
     state._modulesLastXP = totalXP;
   }
 
-  // ---- Daily timetable schedule ────────────────────────────────────────────
-  // Frontend-only timetable subjects for the student view.
-  const TIMETABLE_SUBJECT_IDS = ['mathematics', 'english', 'science'];
+  // ---- Daily vertical schedule (Math / Science alternating + fixed lunch) ───
+  const TIMETABLE_SUBJECT_IDS = ['mathematics', 'science'];
+  const MODULE_SLOT_MIN = 45;
+  const LUNCH_SLOT_MIN = 60;
+  const DAY_START_HOUR = 9;
+
   const DAILY_SCHEDULE = [
-    { type: 'module', subjectId: 'mathematics', label: 'Mathematics', icon: '📐', mins: 45, start: '9:00 AM' },
-    { type: 'module', subjectId: 'english', label: 'English', icon: '📝', mins: 45, start: '9:45 AM' },
-    { type: 'module', subjectId: 'science', label: 'Science', icon: '🔬', mins: 45, start: '10:30 AM' },
-    { type: 'module', subjectId: 'english', label: 'English', icon: '📝', mins: 45, start: '11:15 AM' },
-    { type: 'fixed', label: 'Lunch', icon: '🍱', mins: 60, start: '12:00 PM', bg: '#F0E8D0', fg: '#5C4020', locked: true },
-    { type: 'module', subjectId: 'mathematics', label: 'Mathematics', icon: '📐', mins: 45, start: '1:00 PM' },
-    { type: 'module', subjectId: 'science', label: 'Science', icon: '🔬', mins: 45, start: '1:45 PM' },
-    { type: 'module', subjectId: 'english', label: 'English', icon: '📝', mins: 45, start: '2:30 PM' },
+    { type: 'module', subjectId: 'mathematics', mins: 45 },
+    { type: 'module', subjectId: 'science', mins: 45 },
+    { type: 'module', subjectId: 'mathematics', mins: 45 },
+    { type: 'module', subjectId: 'science', mins: 45 },
+    { type: 'lunch', mins: LUNCH_SLOT_MIN },
+    { type: 'module', subjectId: 'mathematics', mins: 45 },
+    { type: 'module', subjectId: 'science', mins: 45 },
+    { type: 'module', subjectId: 'mathematics', mins: 45 }
   ];
+
+  function _defaultVerticalDaySlots() {
+    return DAILY_SCHEDULE.map(s => ({ type: s.type, subjectId: s.subjectId || null, topicId: null }));
+  }
+
+  function _formatClockLabel(date) {
+    return date.toLocaleTimeString('en-IN', { hour: 'numeric', minute: '2-digit', hour12: true });
+  }
+
+  function _formatScheduleRange(slot) {
+    return `${slot.startLabel} – ${slot.endLabel}`;
+  }
+
+  function _moduleScheduleDescription(m) {
+    if (!m) return '';
+    const topicData = GKRecommender.getTopicData(m.subjectId, m.topicId);
+    const topic = topicData && topicData.topic;
+    const desc = (topic && (topic.scheduleDescription || topic.description)) || m.topicDescription || '';
+    return String(desc).trim();
+  }
+
+  function _syncModuleTopicDescriptions() {
+    if (!state.modules || !state.modules.length) return;
+    state.modules = state.modules.map(m => {
+      const desc = _moduleScheduleDescription(m);
+      return desc ? { ...m, topicDescription: desc } : m;
+    });
+  }
+
+  function _scheduleConceptPreview(m) {
+    if (!m) return '';
+    const desc = _moduleScheduleDescription(m);
+    if (desc) return desc;
+    return `Explore ${m.topicName} in ${m.subjectName} — curiosity hooks, concept cards, light checks, and more.`;
+  }
+
+  function _scheduleTimeRangeForSubject(visibleModules, subjectId) {
+    const slots = _getVerticalScheduleTimed(visibleModules);
+    const slot = slots.find(s => s.type === 'module' && s.subjectId === subjectId);
+    return slot ? _formatScheduleRange(slot) : '';
+  }
+
+  function _moveVerticalScheduleSlot(slots, fromIdx, toIdx) {
+    if (fromIdx === toIdx) return slots;
+    if (slots[fromIdx]?.type === 'lunch' || slots[toIdx]?.type === 'lunch') return null;
+    const next = slots.map(s => ({ ...s }));
+    const [item] = next.splice(fromIdx, 1);
+    next.splice(toIdx, 0, item);
+    return next;
+  }
+
+  function _syncVerticalSlotTopics(slots, visibleModules) {
+    slots.forEach(slot => {
+      if (slot.type !== 'module') return;
+      const m = _moduleForSlot(slot, visibleModules);
+      if (m) slot.topicId = m.topicId;
+    });
+    return slots;
+  }
+
+  function _readSavedVerticalSchedule() {
+    try {
+      const raw = sessionStorage.getItem('gk_vertical_schedule_v10_' + state.user.id);
+      if (!raw) return null;
+      const parsed = JSON.parse(raw);
+      if (!Array.isArray(parsed) || parsed.length !== DAILY_SCHEDULE.length) return null;
+      const lunchIdx = DAILY_SCHEDULE.findIndex(s => s.type === 'lunch');
+      if (parsed[lunchIdx]?.type !== 'lunch') return null;
+      return parsed;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  function _saveVerticalSchedule() {
+    try {
+      sessionStorage.setItem(
+        'gk_vertical_schedule_v10_' + state.user.id,
+        JSON.stringify(state.verticalSchedule)
+      );
+    } catch (_) { /* ignore */ }
+  }
+
+  function _moduleForSlot(slot, visibleModules) {
+    if (!slot || slot.type !== 'module') return null;
+    const byTopic = slot.topicId
+      ? visibleModules.find(m => m.subjectId === slot.subjectId && m.topicId === slot.topicId)
+      : null;
+    if (byTopic) return byTopic;
+    const subjectModules = visibleModules.filter(m => m.subjectId === slot.subjectId);
+    if (!subjectModules.length) return null;
+    const active = subjectModules.find(mod => _getTopicProgress(mod).status === 'in_progress');
+    if (active) return active;
+    const incomplete = subjectModules.find(mod => _getTopicProgress(mod).status !== 'complete');
+    return incomplete || subjectModules[subjectModules.length - 1];
+  }
+
+  function _assignTimesToSlots(slots) {
+    const cursor = new Date();
+    cursor.setHours(DAY_START_HOUR, 0, 0, 0);
+    return slots.map(slot => {
+      const mins = slot.type === 'lunch' ? LUNCH_SLOT_MIN : MODULE_SLOT_MIN;
+      const start = new Date(cursor);
+      cursor.setMinutes(cursor.getMinutes() + mins);
+      return {
+        ...slot,
+        durationMins: mins,
+        startLabel: _formatClockLabel(start),
+        endLabel: _formatClockLabel(cursor)
+      };
+    });
+  }
+
+  function _ensureVerticalSchedule(visibleModules) {
+    if (!state.user) return;
+    if (!state.verticalSchedule) {
+      state.verticalSchedule = _readSavedVerticalSchedule() || _defaultVerticalDaySlots();
+    }
+    let changed = false;
+    state.verticalSchedule.forEach(slot => {
+      if (slot.type !== 'module') return;
+      const m = _moduleForSlot(slot, visibleModules);
+      if (m && slot.topicId !== m.topicId) {
+        slot.topicId = m.topicId;
+        changed = true;
+      }
+    });
+    if (changed) _saveVerticalSchedule();
+  }
+
+  function _getVerticalScheduleTimed(visibleModules) {
+    _ensureVerticalSchedule(visibleModules);
+    return _assignTimesToSlots(state.verticalSchedule);
+  }
 
   function _defaultTimetableFlexOrder() {
     return DAILY_SCHEDULE
@@ -1231,19 +1387,21 @@ const GKApp = (() => {
 
   function _ensureTimetableTopicAssignments() {
     if (!state.user || !state.modules?.length) return;
-    if (!state.ttFlexOrder) {
-      state.ttFlexOrder = _normalizeTimetableFlexOrder(_readSavedTimetableFlexOrder());
-    }
-    if (state.ttFlexOrder.some(a => a && !a.topicId)) {
+    const visible = state.modules.filter(
+      m => m.assigned !== false && TIMETABLE_SUBJECT_IDS.includes(m.subjectId)
+    );
+    _ensureVerticalSchedule(visible);
+    if (state.verticalSchedule.some(s => s.type === 'module' && !s.topicId)) {
       _syncTimetableWithMood();
     }
   }
 
   function _getTimetableAssignmentForSubject(subjectId) {
-    if (!state.ttFlexOrder) {
-      state.ttFlexOrder = _normalizeTimetableFlexOrder(_readSavedTimetableFlexOrder());
-    }
-    return state.ttFlexOrder.find(a => a && a.subjectId === subjectId) || null;
+    const visible = (state.modules || []).filter(
+      m => m.assigned !== false && TIMETABLE_SUBJECT_IDS.includes(m.subjectId)
+    );
+    _ensureVerticalSchedule(visible);
+    return state.verticalSchedule.find(s => s.type === 'module' && s.subjectId === subjectId) || null;
   }
 
   /**
@@ -1439,6 +1597,22 @@ const GKApp = (() => {
       return { subjectId: sid, module: m, prog: _getTopicProgress(m) };
     }).filter(Boolean);
 
+    if (!subjectSlots.length) {
+      const total = TIMETABLE_SUBJECT_IDS.length;
+      return {
+        done: 0,
+        total,
+        pct: 0,
+        segments: TIMETABLE_SUBJECT_IDS.map(() => '<div class="ev-seg"></div>').join(''),
+        subjectsComplete: 0,
+        subtopicsDone: 0,
+        subtopicsTotal: 0,
+        minsSoFar: 0,
+        minsLeft: total * MINS_PER_SUBTOPIC,
+        subjectSlots: []
+      };
+    }
+
     const total = Math.max(subjectSlots.length, 1);
     let subjectsComplete = 0;
     let subtopicsDone = 0;
@@ -1518,7 +1692,11 @@ const GKApp = (() => {
   }
 
   function renderTodayLessonCards(visibleModules) {
-    const cards = TIMETABLE_SUBJECT_IDS.map(subjectId => {
+    const lessonSubjects = TIMETABLE_SUBJECT_IDS.filter(sid =>
+      visibleModules.some(m => m.subjectId === sid)
+    );
+
+    const cards = lessonSubjects.map(subjectId => {
       const m = _getTodaySubjectModule(visibleModules, subjectId);
       if (!m) return '';
 
@@ -1530,6 +1708,8 @@ const GKApp = (() => {
           : '');
       const cardClass = prog.status === 'complete' ? 'is-complete' : (prog.status === 'in_progress' ? 'is-in-progress' : '');
       const ctaText = prog.status === 'complete' ? 'Review lesson →' : (prog.status === 'in_progress' ? 'Continue →' : 'Start lesson →');
+      const timeRange = _scheduleTimeRangeForSubject(visibleModules, subjectId);
+      const desc = _escapeHtml(_moduleScheduleDescription(m) || 'Explore the key ideas for today and complete the guided activities.');
 
       return `
         <article class="today-lesson-card subject-${subjectId} ${cardClass}" style="--lesson-color:${m.subjectColor}"
@@ -1540,9 +1720,10 @@ const GKApp = (() => {
           <div class="tlc-summary">
             <div class="tlc-topline">
               <span class="tlc-subject"><span class="tlc-dot"></span>${m.subjectName}</span>
+              ${timeRange ? `<span class="schedule-time-range">${timeRange}</span>` : ''}
             </div>
-            <h3>${m.topicName}</h3>
-            <p class="tlc-desc">${m.topicDescription || 'Explore the key ideas for today and complete the guided activities.'}</p>
+            <h3>${_escapeHtml(m.topicName)}</h3>
+            <p class="tlc-desc">${desc}</p>
             <div class="tlc-progress-row">
               <div class="tlc-progress-track">
                 <div class="tlc-progress-fill" style="width:${prog.pct}%"></div>
@@ -1566,13 +1747,69 @@ const GKApp = (() => {
       </section>`;
   }
 
+  function renderVerticalLessonSchedule(visibleModules) {
+    const slots = _getVerticalScheduleTimed(visibleModules);
+
+    const cards = slots.map((slot, idx) => {
+      if (slot.type === 'lunch') {
+        return `
+          <article class="today-lesson-card schedule-card schedule-card-compact schedule-lunch is-fixed" data-vslot="${idx}">
+            <div class="schedule-compact-row">
+              <span class="schedule-drag-handle is-disabled" aria-hidden="true">⠿</span>
+              <span class="tlc-subject"><span class="tlc-dot"></span>Lunch</span>
+              <span class="schedule-compact-spacer" aria-hidden="true"></span>
+              <span class="schedule-time-range" aria-label="Lunch time">${_formatScheduleRange(slot)}</span>
+            </div>
+          </article>`;
+      }
+
+      const m = _moduleForSlot(slot, visibleModules);
+      if (!m) return '';
+
+      const prog = _getTopicProgress(m);
+      const statusBadge = prog.status === 'complete'
+        ? '<span class="lc-tag schedule-status-tag is-complete">✓ Completed</span>'
+        : (prog.status === 'in_progress'
+          ? '<span class="lc-tag schedule-status-tag is-progress">In progress</span>'
+          : '');
+      const cardClass = prog.status === 'complete' ? 'is-complete' : (prog.status === 'in_progress' ? 'is-in-progress' : '');
+      const timeRange = _formatScheduleRange(slot);
+
+      return `
+        <article class="today-lesson-card schedule-card schedule-card-compact subject-${m.subjectId} ${cardClass} vsched-draggable"
+                 data-vslot="${idx}"
+                 style="--lesson-color:${m.subjectColor}"
+                 role="button" tabindex="0"
+                 onclick="GKApp.onVSchedCardClick(event,${m._origIdx})"
+                 onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();GKApp.onVSchedCardClick(event,${m._origIdx})}">
+          <div class="schedule-compact-row">
+            <span class="schedule-drag-handle" title="Drag to reorder"
+                  onpointerdown="GKApp.onVSchedPointerDown(event,${idx})">⠿</span>
+            <span class="tlc-subject"><span class="tlc-dot"></span>${m.subjectName}</span>
+            <span class="schedule-compact-title">${_escapeHtml(m.topicName)}</span>
+            ${statusBadge}
+            <span class="schedule-time-range" aria-label="Lesson time">${timeRange}</span>
+          </div>
+        </article>`;
+    }).join('');
+
+    return `
+      <section class="today-lessons ev-lessons vertical-schedule-section vertical-schedule-fit">
+        <div class="vertical-schedule-list">
+          ${cards}
+        </div>
+      </section>`;
+  }
+
   // ---- SCREEN 3: Module Selection ----
   function renderModules() {
     const user = state.user;
     if (!user) return renderLogin();
 
     _refreshUserFromStore();
+    _ensureStudentModules();
     _ensureTimetableTopicAssignments();
+    _syncModuleTopicDescriptions();
 
     const totalXP = GKStore.getTotalXP(user.id);
     const level = GKXPManager.getLevelForXP(totalXP);
@@ -1589,6 +1826,9 @@ const GKApp = (() => {
     const visibleModules = state.modules.filter(m =>
       m.assigned !== false && TIMETABLE_SUBJECT_IDS.includes(m.subjectId)
     );
+    const lessonSubjectCount = TIMETABLE_SUBJECT_IDS.filter(sid =>
+      visibleModules.some(m => m.subjectId === sid)
+    ).length;
 
     _syncAllVisibleTopicCompletions(visibleModules);
 
@@ -1635,7 +1875,7 @@ const GKApp = (() => {
                 </div>
               </div>
             </div>
-            <div class="ev-status-bar">
+            <div class="ev-status-bar ev-status-bar-compact">
               <div class="ev-status-progress">
                 <div class="top">
                   <span class="lbl">Today's progress</span>
@@ -1644,7 +1884,6 @@ const GKApp = (() => {
                 <div class="ev-status-track">
                   <div class="ev-status-fill" style="width:${prog.pct}%"></div>
                 </div>
-                <div class="ev-status-segments">${prog.segments}</div>
               </div>
               <div class="ev-status-time">
                 <span class="big">${progressTimeBig}</span>
@@ -1652,18 +1891,15 @@ const GKApp = (() => {
               </div>
             </div>
             ${renderResumeCard(visibleModules)}
+            <div class="modules-schedule-panel">
             <div class="ev-section-label">
               <span class="lbl">Today's schedule</span>
-              <span class="meta">⠿ Drag blocks · 🔒 Lunch is fixed</span>
+              <span class="meta">${lessonSubjectCount ? `Math & Science · ${MODULE_SLOT_MIN} min each · lunch 12:00–1:00 PM` : 'Complete mood check-in to load lessons'}</span>
             </div>
-        <div class="modules-content-wrap">
-          ${renderTimetable(visibleModules, assessResults, allLearningPathDone)}
-            <div class="ev-section-label">
-              <span class="lbl">Today's lessons</span>
-              <span class="meta">All ${prog.total} subjects · pick any</span>
+        <div class="modules-content-wrap modules-content-wrap-schedule">
+          ${renderVerticalLessonSchedule(visibleModules)}
+        </div>
             </div>
-          ${renderTodayLessonCards(visibleModules)}
-
           <!-- Submit for Mentor Review -->
           <div class="mrb-wrap">
             ${alreadySubmitted
@@ -1690,8 +1926,6 @@ const GKApp = (() => {
              </button>
           </div>
 
-
-        </div>
           </main>
         </div>
       </div>`;
@@ -1945,6 +2179,408 @@ const GKApp = (() => {
       </div>`;
   }
 
+  function _hasLessonFlow(subtopic) {
+    return !!(subtopic && subtopic.lessonFlow && subtopic.lessonFlow.cycles && subtopic.lessonFlow.cycles.length);
+  }
+
+  function _lessonFlowPhaseLabel(subtopic) {
+    if (state.phase === 'game') return 'Practice activity';
+    if (!_hasLessonFlow(subtopic)) {
+      const n = (subtopic && subtopic.concepts && subtopic.concepts.length) || 1;
+      return `Concept ${state.conceptIdx + 1} of ${n}`;
+    }
+    const flow = subtopic.lessonFlow;
+    const cycleNum = state.conceptIdx + 1;
+    const cycleTotal = flow.cycles.length;
+    const labels = {
+      hook: `Curiosity hook · Part ${cycleNum} of ${cycleTotal}`,
+      concept: `Concept card · Part ${cycleNum} of ${cycleTotal}`,
+      'deep-dive': 'Deep dive zone',
+      project: 'Project activity'
+    };
+    return labels[state.lessonPhase] || `Lesson · Part ${cycleNum} of ${cycleTotal}`;
+  }
+
+  function _lessonFlowWorkspacePhase(subtopic) {
+    if (!_hasLessonFlow(subtopic)) {
+      return state.phase === 'game' ? 'Interactive practice' : 'Guided concept';
+    }
+    const map = {
+      hook: 'Curiosity hook',
+      concept: 'Concept card',
+      'deep-dive': 'Deep dive',
+      project: 'Project activity'
+    };
+    return map[state.lessonPhase] || 'Lesson';
+  }
+
+  function _currentLessonCycle(subtopic) {
+    if (!_hasLessonFlow(subtopic)) return null;
+    return subtopic.lessonFlow.cycles[state.conceptIdx] || null;
+  }
+
+  function _escapeHtml(text) {
+    return String(text || '')
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+  }
+
+  function _escapeAttr(text) {
+    return _escapeHtml(text).replace(/'/g, '&#39;');
+  }
+
+  function _resolveConceptVideoEmbed(concept) {
+    if (!concept || typeof GKContentLoader === 'undefined') return concept?.videoEmbed || null;
+    const link = concept.videoLink || concept.videoUrl || '';
+    return GKContentLoader.parseVideoEmbed(link)
+      || concept.videoEmbed
+      || null;
+  }
+
+  function _conceptVideoTitle(concept) {
+    const title = concept.videoTitle || concept.video || '';
+    if (!title) return '';
+    if (typeof GKContentLoader !== 'undefined' && GKContentLoader.extractVideoUrl(title)) return '';
+    if (/^https?:\/\//i.test(String(title).trim()) || /<iframe\b/i.test(title)) return '';
+    return String(title).trim();
+  }
+
+  function _renderConceptVideoPlayer(embed, displayTitle) {
+    if (!embed) return '';
+    const titleHtml = displayTitle
+      ? `<div class="concept-video-label">${_escapeHtml(displayTitle)}</div>`
+      : '';
+    if (embed.kind === 'iframe') {
+      return `
+        <div class="concept-video-wrap">
+          ${titleHtml}
+          <div class="concept-video-frame">
+            <iframe
+              src="${_escapeAttr(embed.src)}"
+              title="${_escapeAttr(displayTitle || 'Lesson video')}"
+              frameborder="0"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+              allowfullscreen
+              loading="lazy"
+              referrerpolicy="strict-origin-when-cross-origin"></iframe>
+          </div>
+        </div>`;
+    }
+    if (embed.kind === 'video') {
+      return `
+        <div class="concept-video-wrap">
+          ${titleHtml}
+          <video class="concept-video-native" controls playsinline preload="metadata" src="${_escapeAttr(embed.src)}"></video>
+        </div>`;
+    }
+    if (embed.kind === 'link') {
+      return `
+        <div class="concept-video-wrap concept-video-fallback">
+          ${titleHtml}
+          <a class="btn btn-primary" href="${_escapeAttr(embed.href)}" target="_blank" rel="noopener noreferrer">▶ Open video in new tab</a>
+        </div>`;
+    }
+    return '';
+  }
+
+  function _renderConceptVideoSection(concept) {
+    const displayTitle = _conceptVideoTitle(concept);
+    const embed = _resolveConceptVideoEmbed(concept);
+    const hasVideoSlot = displayTitle || embed || concept.videoLink || concept.videoUrl || concept.video;
+
+    if (!hasVideoSlot) return '';
+
+    if (embed) {
+      return _renderConceptVideoPlayer(embed, displayTitle);
+    }
+
+    return `
+      <div class="concept-video-wrap">
+        ${displayTitle ? `<div class="concept-video-label">${_escapeHtml(displayTitle)}</div>` : ''}
+        <div class="concept-video-placeholder">
+          <p class="concept-video-placeholder-text">Paste your link for the video to be shown</p>
+        </div>
+      </div>`;
+  }
+
+  function _renderConceptMedia(concept) {
+    if (!concept) return '';
+    const blocks = [];
+
+    if (concept.keyword) {
+      blocks.push(`<div class="concept-meta-line"><strong>Keyword:</strong> ${_escapeHtml(concept.keyword)}</div>`);
+    }
+
+    const videoSection = _renderConceptVideoSection(concept);
+    if (videoSection) blocks.push(videoSection);
+
+    const imageSrc = concept.image && /^https?:\/\//i.test(concept.image) ? concept.image : null;
+    if (imageSrc) {
+      blocks.push(`<div class="concept-image-wrap"><img src="${_escapeAttr(imageSrc)}" alt="" loading="lazy" /></div>`);
+    } else if (concept.image) {
+      blocks.push(`<div class="concept-meta-line">${_escapeHtml(concept.image)}</div>`);
+    }
+
+    if (concept.observe) {
+      blocks.push(`<div class="concept-meta-line"><strong>Observe:</strong> ${_escapeHtml(concept.observe)}</div>`);
+    }
+
+    if (!blocks.length && concept.visual && concept.visual !== '📖') {
+      blocks.push(`<div class="concept-visual-legacy"><code>${_escapeHtml(concept.visual)}</code></div>`);
+    }
+
+    if (!blocks.length) return '';
+    return `<div class="concept-media">${blocks.join('')}</div>`;
+  }
+
+  function _renderLessonCardShell(badge, title, body, examples, actionsHtml) {
+    return `
+      <div class="concept-card lesson-flow-card">
+        <div class="lesson-phase-badge">${badge}</div>
+        <h2 class="concept-title">${_escapeHtml(title)}</h2>
+        <p class="concept-body">${_escapeHtml(body).replace(/\n/g, '<br>')}</p>
+        ${examples && examples.length ? `
+        <div class="concept-examples">
+          <strong>Think about:</strong>
+          <ul>${examples.map(e => `<li>${_escapeHtml(e)}</li>`).join('')}</ul>
+        </div>` : ''}
+        <div class="concept-actions">${actionsHtml}</div>
+      </div>`;
+  }
+
+  function renderLessonFlowContent(subtopic) {
+    const flow = subtopic.lessonFlow;
+    const cycle = _currentLessonCycle(subtopic);
+    const cycleTotal = flow.cycles.length;
+    const canPrev = state.lessonPhase === 'concept' || (state.lessonPhase === 'hook' && state.conceptIdx > 0);
+
+    if (state.lessonPhase === 'hook' && cycle && !cycle.hook && cycle.concept) {
+      state.lessonPhase = 'concept';
+    }
+
+    if (state.lessonPhase === 'hook' && cycle && cycle.hook) {
+      const backBtn = canPrev
+        ? `<button class="btn btn-ghost" onclick="GKApp.prevLessonFlow()">← Back</button>`
+        : '';
+      return _renderLessonCardShell(
+        `✨ Curiosity hook · ${state.conceptIdx + 1}/${cycleTotal}`,
+        cycle.hook.title,
+        cycle.hook.body,
+        cycle.hook.examples,
+        `${backBtn}<button class="btn btn-primary" onclick="GKApp.advanceLessonFlow()">Continue to concept →</button>`
+      );
+    }
+
+    if (state.lessonPhase === 'concept' && cycle && cycle.concept) {
+      const backBtn = `<button class="btn btn-ghost" onclick="GKApp.prevLessonFlow()">← Back</button>`;
+      const c = cycle.concept;
+      return `
+        <div class="concept-card lesson-flow-card">
+          <div class="lesson-phase-badge">📖 Concept card · ${state.conceptIdx + 1}/${cycleTotal}</div>
+          <h2 class="concept-title">${_escapeHtml(c.title)}</h2>
+          <p class="concept-body">${_escapeHtml(c.body).replace(/\n/g, '<br>')}</p>
+          ${_renderConceptMedia(c)}
+          ${c.examples && c.examples.length ? `
+          <div class="concept-examples">
+            <strong>Examples:</strong>
+            <ul>${c.examples.map(e => `<li>${_escapeHtml(e)}</li>`).join('')}</ul>
+          </div>` : ''}
+          <div class="concept-actions">
+            ${backBtn}
+            <button class="btn btn-primary" onclick="GKApp.advanceLessonFlow()">
+              ${cycle.lightAssessment && cycle.lightAssessment.length ? 'Quick check →' : 'Next →'}
+            </button>
+          </div>
+        </div>`;
+    }
+
+    if (state.lessonPhase === 'deep-dive' && flow.deepDive) {
+      const d = flow.deepDive;
+      return _renderLessonCardShell(
+        '🔍 Deep dive zone',
+        d.title,
+        d.body,
+        d.examples,
+        `<button class="btn btn-primary" onclick="GKApp.advanceLessonFlow()">
+          ${flow.finalAssessment && flow.finalAssessment.length ? 'Chapter assessment →' : 'Continue →'}
+        </button>`
+      );
+    }
+
+    if (state.lessonPhase === 'project' && flow.project) {
+      const p = flow.project;
+      const projectList = (p.projects || []).slice(0, 6).map(pr => `
+        <li><strong>${_escapeHtml(pr.project_title || pr.title || 'Project')}</strong>
+          ${pr.project_objective ? `<br><span class="tlc-desc">${_escapeHtml(pr.project_objective)}</span>` : ''}
+        </li>`).join('');
+      return `
+        <div class="concept-card lesson-flow-card">
+          <div class="lesson-phase-badge">🛠️ Project activity</div>
+          <h2 class="concept-title">${_escapeHtml(p.title)}</h2>
+          <p class="concept-body">${_escapeHtml(p.body).replace(/\n/g, '<br>')}</p>
+          ${projectList ? `<div class="concept-examples"><strong>Choose a challenge:</strong><ul>${projectList}</ul></div>` : ''}
+          <div class="concept-actions">
+            <button class="btn btn-primary" onclick="GKApp.completeLessonFlow()">Finish lesson ✓</button>
+          </div>
+        </div>`;
+    }
+
+    return renderConceptContent(subtopic);
+  }
+
+  function _startLessonFlowAt(subtopic, cycleIdx, phase) {
+    state.conceptIdx = cycleIdx;
+    state.lessonPhase = phase;
+    state.phase = 'concepts';
+    state.gameState = {};
+    state.aiMessages = [];
+    if (phase === 'hook') {
+      const cycle = subtopic.lessonFlow.cycles[cycleIdx];
+      if (!cycle || !cycle.hook) state.lessonPhase = 'concept';
+    }
+    navigate('learning');
+  }
+
+  function advanceLessonFlow() {
+    const subtopic = _getCurrentSubtopic();
+    if (!_hasLessonFlow(subtopic)) {
+      nextConcept();
+      return;
+    }
+    const flow = subtopic.lessonFlow;
+    const cycle = _currentLessonCycle(subtopic);
+
+    if (state.lessonPhase === 'hook') {
+      state.lessonPhase = 'concept';
+      const m = state.modules[state.activeModuleIdx];
+      const conceptKey = `${m.subjectId}-${m.topicId}-${state.activeSubtopicIdx}-${state.conceptIdx}-concept`;
+      if (!state.seenConcepts.has(conceptKey)) {
+        GKXPManager.awardXP(state.user.id, 'conceptRead');
+        state.seenConcepts.add(conceptKey);
+      }
+      render();
+      _pushLiveState();
+      return;
+    }
+
+    if (state.lessonPhase === 'concept') {
+      if (cycle && cycle.lightAssessment && cycle.lightAssessment.length) {
+        GKAssessment.init(cycle.lightAssessment);
+        state._lessonFlowMode = 'light';
+        state._isFinalAssessment = false;
+        navigate('assessment');
+        return;
+      }
+      _lessonFlowAfterLightAssessment();
+      return;
+    }
+
+    if (state.lessonPhase === 'deep-dive') {
+      if (flow.finalAssessment && flow.finalAssessment.length) {
+        GKAssessment.init(flow.finalAssessment);
+        state._lessonFlowMode = 'final';
+        state._isFinalAssessment = false;
+        navigate('assessment');
+        return;
+      }
+      state.lessonPhase = 'project';
+      if (!flow.project) {
+        completeLessonFlow();
+        return;
+      }
+      render();
+      _pushLiveState();
+      return;
+    }
+
+    if (state.lessonPhase === 'project') {
+      completeLessonFlow();
+    }
+  }
+
+  function prevLessonFlow() {
+    const subtopic = _getCurrentSubtopic();
+    if (!_hasLessonFlow(subtopic)) {
+      prevConcept();
+      return;
+    }
+    if (state.lessonPhase === 'concept') {
+      const cycle = _currentLessonCycle(subtopic);
+      if (cycle && cycle.hook) {
+        state.lessonPhase = 'hook';
+      } else if (state.conceptIdx > 0) {
+        state.conceptIdx--;
+        const prev = subtopic.lessonFlow.cycles[state.conceptIdx];
+        state.lessonPhase = prev && prev.hook ? 'hook' : 'concept';
+      }
+      render();
+      _pushLiveState();
+      return;
+    }
+    if (state.lessonPhase === 'hook' && state.conceptIdx > 0) {
+      state.conceptIdx--;
+      const prev = subtopic.lessonFlow.cycles[state.conceptIdx];
+      state.lessonPhase = prev && prev.concept ? 'concept' : 'hook';
+      render();
+      _pushLiveState();
+    }
+  }
+
+  function _lessonFlowAfterLightAssessment() {
+    const subtopic = _getCurrentSubtopic();
+    if (!_hasLessonFlow(subtopic)) return;
+    const flow = subtopic.lessonFlow;
+    if (state.conceptIdx + 1 < flow.cycles.length) {
+      _startLessonFlowAt(subtopic, state.conceptIdx + 1, 'hook');
+      return;
+    }
+    if (flow.deepDive) {
+      state.lessonPhase = 'deep-dive';
+      state.phase = 'concepts';
+      navigate('learning');
+      return;
+    }
+    if (flow.finalAssessment && flow.finalAssessment.length) {
+      GKAssessment.init(flow.finalAssessment);
+      state._lessonFlowMode = 'final';
+      navigate('assessment');
+      return;
+    }
+    if (flow.project) {
+      state.lessonPhase = 'project';
+      navigate('learning');
+      return;
+    }
+    completeLessonFlow();
+  }
+
+  function continueLessonFlowAfterLight() {
+    state._lessonFlowMode = null;
+    _lessonFlowAfterLightAssessment();
+  }
+
+  function continueLessonFlowAfterFinal() {
+    state._lessonFlowMode = null;
+    const subtopic = _getCurrentSubtopic();
+    if (_hasLessonFlow(subtopic) && subtopic.lessonFlow.project) {
+      state.lessonPhase = 'project';
+      state.phase = 'concepts';
+      navigate('learning');
+      return;
+    }
+    completeLessonFlow();
+  }
+
+  function completeLessonFlow() {
+    state.lessonPhase = null;
+    state._lessonFlowMode = null;
+    state.phase = 'concepts';
+    state._lastAssessmentScore = state._lastAssessmentScore ?? 100;
+    afterGame();
+  }
+
   // ---- SCREEN 4: Learning ----
   function renderLearning() {
     const m = state.modules[state.activeModuleIdx];
@@ -1959,12 +2595,17 @@ const GKApp = (() => {
       <span class="nav-dot ${i === state.activeSubtopicIdx ? 'active' : i < state.activeSubtopicIdx ? 'done' : ''}"
         title="${st.name}"></span>`).join('');
 
-    let mainContent = state.phase === 'game'
-      ? renderGameContent(subtopic)
-      : renderConceptContent(subtopic);
+    let mainContent;
+    if (_hasLessonFlow(subtopic) && state.phase !== 'game') {
+      mainContent = renderLessonFlowContent(subtopic);
+    } else if (state.phase === 'game') {
+      mainContent = renderGameContent(subtopic);
+    } else {
+      mainContent = renderConceptContent(subtopic);
+    }
 
     // Apply the entrance animation class ONLY when first visiting this concept or game
-    const currentViewId = `${subtopic.id}-${state.phase}-${state.conceptIdx}`;
+    const currentViewId = `${subtopic.id}-${state.phase}-${state.lessonPhase || ''}-${state.conceptIdx}`;
     if (window._lastAnimViewId !== currentViewId) {
       mainContent = mainContent.replace('class="concept-card"', 'class="concept-card animate-entrance"')
         .replace('class="game-card"', 'class="game-card animate-entrance"');
@@ -1972,7 +2613,7 @@ const GKApp = (() => {
     }
 
     const subtopicPct = Math.round(((state.activeSubtopicIdx + 1) / topic.subtopics.length) * 100);
-    const workspacePhase = state.phase === 'game' ? 'Interactive practice' : 'Guided concept';
+    const workspacePhase = _lessonFlowWorkspacePhase(subtopic);
 
     return `
       <div class="screen screen-learning learning-session-active ${state.sidebarCollapsed ? 'sidebar-nav-collapsed' : ''}">
@@ -2017,9 +2658,7 @@ const GKApp = (() => {
         </div>
         <h2 class="concept-title">${concept.title}</h2>
         <p class="concept-body">${concept.body.replace(/\n/g, '<br>')}</p>
-        <div class="concept-visual">
-          <code>${concept.visual}</code>
-        </div>
+        ${_renderConceptMedia(concept)}
         <div class="concept-examples">
           <strong>Examples:</strong>
           <ul>${concept.examples.map(e => `<li>${e}</li>`).join('')}</ul>
@@ -2482,29 +3121,32 @@ const GKApp = (() => {
       const results = GKAssessment.getResults();
       return renderAssessmentResults(results);
     }
+    const assessTitle = state._lessonFlowMode === 'light'
+      ? '⚡ Quick check'
+      : (state._lessonFlowMode === 'final' ? '🏆 Chapter assessment' : '⚡ Challenge Zone');
+    const assessSub = state._lessonFlowMode === 'light'
+      ? 'Light assessment for this part of the lesson'
+      : (state._lessonFlowMode === 'final'
+        ? 'Final assessment for this chapter'
+        : 'Test your understanding — you\'ve got this!');
     const qType = q.type || 'mcq';
     const typeLabels = {
       'mcq': '📝 Multiple Choice', 'true-false': '✅❌ True or False', 'fill-blank': '✏️ Fill in the Blank',
       'short-answer': '📝 Short Answer', 'multiple-correct': '☑️ Select All Correct', 'ordering': '🔢 Arrange in Order', 'match': '🔗 Match the Following'
     };
-    return `
-      <div class="screen screen-assessment">
-        ${renderHeader()}
-        <div class="screen-agent-row">
-          ${_agentHtml('assessment')}
-          <div class="agent-pane-spacer"></div>
-          <div class="screen-content-col">
+    const assessmentBody = `
             <div class="content-wrap">
               <div class="learning-schedule-bar">
                 ${_scheduleBackBtnHtml()}
               </div>
               <div class="challenge-header">
-                <h2>⚡ Challenge Zone</h2>
-                <p>Test your understanding — you've got this!</p>
+                <h2>${assessTitle}</h2>
+                <p>${assessSub}</p>
+                ${state._lessonFlowMode ? '' : `
                 <div class="xp-info-tip">
                   <span class="xp-info-icon" title="XP Rules">&#x2139;&#xFE0F;</span>
                   <span class="xp-info-text">1st attempt: +3 XP per correct | 2nd: +2 XP | 3rd+: +1 XP</span>
-                </div>
+                </div>`}
               </div>
               <div class="assessment-progress">
                 <div class="prog-bar">
@@ -2522,7 +3164,20 @@ const GKApp = (() => {
                   ${q.index + 1 < q.total ? 'Next Question →' : 'See Results 🎯'}
                 </button>
               </div>
-            </div>
+            </div>`;
+
+    if (state._lessonFlowMode) {
+      return _renderLessonFlowAssessmentShell('assessment', assessmentBody);
+    }
+
+    return `
+      <div class="screen screen-assessment">
+        ${renderHeader()}
+        <div class="screen-agent-row">
+          ${_agentHtml('assessment')}
+          <div class="agent-pane-spacer"></div>
+          <div class="screen-content-col">
+            ${assessmentBody}
           </div>
         </div>
       </div>`;
@@ -2531,21 +3186,25 @@ const GKApp = (() => {
   function renderAssessmentResults(results) {
     const perf = GKAssessment.getPerformanceLabel(results.percentage);
     const isFinal = state._isFinalAssessment;
+    const lessonFlowMode = state._lessonFlowMode;
     const m = state.modules[state.activeModuleIdx];
     const topicKey = isFinal ? 'final' : `${m.subjectId}-${m.topicId}`;
 
     // Save to session store
     state._lastAssessmentScore = results.percentage; // Track for Krishna's feedback
 
-    GKStore.recordAssessmentResult(topicKey, results.score, results.total);
-    // Save detailed attempt to profile
-    GKStore.saveDetailedAssessmentResult(
-      state.user.id, topicKey,
-      results.score, results.total, results.answers
-    );
+    if (!lessonFlowMode) {
+      GKStore.recordAssessmentResult(topicKey, results.score, results.total);
+    }
+    if (!lessonFlowMode) {
+      GKStore.saveDetailedAssessmentResult(
+        state.user.id, topicKey,
+        results.score, results.total, results.answers
+      );
+    }
     // For subtopic-level pure assessment: also persist per-subtopic score so it
     // shows on the subtopics list after a page refresh
-    if (!isFinal && state.user && state.activeSubtopicIdx !== undefined) {
+    if (!lessonFlowMode && !isFinal && state.user && state.activeSubtopicIdx !== undefined) {
       const st = _getCurrentSubtopic();
       if (st) {
         const stKey = m.topicId + '-' + st.id;
@@ -2558,7 +3217,13 @@ const GKApp = (() => {
     const passed = results.percentage >= 60;
 
     let actionBtn;
-    if (isFinal) {
+    if (lessonFlowMode === 'light') {
+      actionBtn = `<button class="btn btn-primary" onclick="GKApp.continueLessonFlowAfterLight()">Continue lesson →</button>`;
+    } else if (lessonFlowMode === 'final') {
+      actionBtn = `<button class="btn btn-primary" onclick="GKApp.continueLessonFlowAfterFinal()">
+        ${(_getCurrentSubtopic()?.lessonFlow?.project) ? 'Project activity →' : 'Finish lesson ✓'}
+      </button>`;
+    } else if (isFinal) {
       actionBtn = `<button class="btn btn-primary" onclick="GKApp.finishFinalAssessment()">Share Feedback 💬</button>`;
     } else {
       // After topic assessment → go to module feedback
@@ -2573,25 +3238,19 @@ const GKApp = (() => {
       }
     }
 
-    const retakeBtn = !isFinal ? `
+    const retakeBtn = (!isFinal && !lessonFlowMode) ? `
       <button class="btn btn-ghost mt-sm" onclick="GKApp.retakeChallenge()">
         🔄 Retake Challenge
       </button>` : '';
 
-    return `
-      <div class="screen screen-assessment">
-        ${renderHeader()}
-        <div class="screen-agent-row">
-          ${_agentHtml('results')}
-          <div class="agent-pane-spacer"></div>
-          <div class="screen-content-col">
+    const resultsBody = `
             <div class="content-wrap">
               <div class="learning-schedule-bar">
                 ${_scheduleBackBtnHtml()}
               </div>
               <div class="results-card">
                 <div class="results-icon">${isFinal ? '🏆' : (perf.label.split('!')[0].trim().split(' ').pop())}</div>
-                <h2 style="color: ${perf.color}">${isFinal ? 'Final Assessment Complete!' : perf.label}</h2>
+                <h2 style="color: ${perf.color}">${lessonFlowMode === 'light' ? 'Quick check complete!' : (lessonFlowMode === 'final' ? 'Chapter assessment complete!' : (isFinal ? 'Final Assessment Complete!' : perf.label))}</h2>
                 <div class="score-ring">
                   <span class="score-num">${results.score}/${results.total}</span>
                   <span class="score-pct">${results.percentage}%</span>
@@ -2622,7 +3281,20 @@ const GKApp = (() => {
                   ${retakeBtn}
                 </div>
               </div>
-            </div>
+            </div>`;
+
+    if (lessonFlowMode) {
+      return _renderLessonFlowAssessmentShell('results', resultsBody);
+    }
+
+    return `
+      <div class="screen screen-assessment">
+        ${renderHeader()}
+        <div class="screen-agent-row">
+          ${_agentHtml('results')}
+          <div class="agent-pane-spacer"></div>
+          <div class="screen-content-col">
+            ${resultsBody}
           </div>
         </div>
       </div>`;
@@ -2943,6 +3615,39 @@ const GKApp = (() => {
     return false;
   }
 
+  /** Modules for timetable/schedule: path topics with published: true only (from backend config). */
+  function _assignStudentModules(calibration, completedTopics, unlockedTopics) {
+    const published = GKStore.getPublishedTopicIds(state.user.id);
+    const modules = GKRecommender.getRecommendedModules(calibration, completedTopics || [])
+      .filter(m => !_isTopicHidden(m, unlockedTopics))
+      .filter(m => !published || published.has(m.topicId))
+      .map((m, idx) => ({ ...m, _origIdx: idx }));
+    state.modules = modules;
+    _syncModuleTopicDescriptions();
+    return state.modules;
+  }
+
+  /** Rebuild module list when opening schedule if mood flow did not run (e.g. page refresh). */
+  function _ensureStudentModules() {
+    if (!state.user || (state.modules && state.modules.length > 0)) return;
+    const session = GKStore.getSession();
+    if (session?.mood) {
+      state.mood = session.mood;
+      state.calibration = GKMoodEngine.calibrateSession(
+        session.mood.brainBattery, session.mood.currentVibe
+      );
+    }
+    if (!state.calibration) return;
+    const profile = GKAuth.refreshUser();
+    const unlockedTopics = profile.unlockedTopics || [];
+    state.modules = _assignStudentModules(
+      state.calibration,
+      profile.completedTopics || [],
+      unlockedTopics
+    );
+    if (state.modules.length) _syncTimetableWithMood();
+  }
+
   // ---- Event Handlers ----
   function handleLogin(e) {
     e.preventDefault();
@@ -3011,11 +3716,11 @@ const GKApp = (() => {
 
     const profile = GKAuth.refreshUser();
     const unlockedTopics = profile.unlockedTopics || [];
-    state.modules = GKRecommender.getRecommendedModules(
+    state.modules = _assignStudentModules(
       state.calibration,
-      profile.completedTopics || []
-    ).filter(m => !_isTopicHidden(m, unlockedTopics))
-      .map((m, idx) => ({ ...m, _origIdx: idx }));
+      profile.completedTopics || [],
+      unlockedTopics
+    );
 
     _syncTimetableWithMood();
 
@@ -3062,11 +3767,11 @@ const GKApp = (() => {
     GKXPManager.updateStreak(state.user.id);
     const profile = GKAuth.refreshUser();
     const unlockedTopics = profile.unlockedTopics || [];
-    state.modules = GKRecommender.getRecommendedModules(
+    state.modules = _assignStudentModules(
       state.calibration,
-      profile.completedTopics || []
-    ).filter(m => !_isTopicHidden(m, unlockedTopics))
-      .map((m, idx) => ({ ...m, _origIdx: idx }));
+      profile.completedTopics || [],
+      unlockedTopics
+    );
 
     _syncTimetableWithMood();
 
@@ -3083,57 +3788,31 @@ const GKApp = (() => {
   function _syncTimetableWithMood() {
     if (!state.user || !state.modules || state.modules.length === 0) return;
 
-    // 1. Get the uniquely ordered subject sequence from the recommended modules
-    const recommendedOrder = [];
-    const seenSubjects = new Set();
+    const visible = state.modules.filter(
+      m => m.assigned !== false && TIMETABLE_SUBJECT_IDS.includes(m.subjectId)
+    );
+    _ensureVerticalSchedule(visible);
 
+    const recommendedBySubject = {};
     state.modules
       .filter(m => TIMETABLE_SUBJECT_IDS.includes(m.subjectId))
-      .sort((a, b) => TIMETABLE_SUBJECT_IDS.indexOf(a.subjectId) - TIMETABLE_SUBJECT_IDS.indexOf(b.subjectId))
       .forEach(m => {
-      // Skip topics that are already locked into fixed slots.
-      const isFixed = DAILY_SCHEDULE.some(s => s.locked && s.subjectId === m.subjectId && s.topicId === m.topicId);
-      if (isFixed) return;
+        if (!recommendedBySubject[m.subjectId]) {
+          recommendedBySubject[m.subjectId] = m.topicId;
+        }
+      });
 
-      if (!seenSubjects.has(m.subjectId)) {
-        recommendedOrder.push({ subjectId: m.subjectId, topicId: m.topicId });
-        seenSubjects.add(m.subjectId);
+    state.verticalSchedule.forEach(slot => {
+      if (slot.type !== 'module') return;
+      const topicId = recommendedBySubject[slot.subjectId];
+      if (topicId) slot.topicId = topicId;
+      else {
+        const m = _moduleForSlot(slot, visible);
+        if (m) slot.topicId = m.topicId;
       }
     });
 
-    // 2. Map this sequence onto the flexible slots (ttFlexOrder)
-    // Ensure ttFlexOrder is initialized if it's null (happens on first run before render)
-    if (!state.ttFlexOrder) {
-      state.ttFlexOrder = _normalizeTimetableFlexOrder(_readSavedTimetableFlexOrder());
-    } else {
-      state.ttFlexOrder = _normalizeTimetableFlexOrder(state.ttFlexOrder);
-    }
-
-    // Slots in DAILY_SCHEDULE that carry an explicit topicId are "pinned" —
-    // they must always show that specific topic regardless of mood reordering.
-    const flexSlots = DAILY_SCHEDULE.filter(s => s.type === 'module' && !s.locked);
-
-    // We only fill as many slots as we have recommendations for.
-    // Pinned slots are skipped during mood reordering; their assignment is locked.
-    const newFlexOrder = _normalizeTimetableFlexOrder(state.ttFlexOrder);
-    let rIdx = 0;
-    for (let i = 0; i < newFlexOrder.length; i++) {
-      const originalSlot = flexSlots[i];
-      if (originalSlot && originalSlot.topicId) {
-        // Pinned slot: always restore the exact subject+topic from DAILY_SCHEDULE
-        newFlexOrder[i] = { subjectId: originalSlot.subjectId, topicId: originalSlot.topicId };
-      } else {
-        // Generic slot: assign from mood-ordered recommendations
-        if (recommendedOrder[rIdx]) {
-          newFlexOrder[i] = { subjectId: recommendedOrder[rIdx].subjectId, topicId: recommendedOrder[rIdx].topicId || null };
-          rIdx++;
-        }
-      }
-    }
-
-    state.ttFlexOrder = _normalizeTimetableFlexOrder(newFlexOrder);
-    sessionStorage.setItem('gk_tt_flex_order_v9_' + state.user.id, JSON.stringify(state.ttFlexOrder));
-    console.log("Timetable auto-reordered based on mood:", recommendedOrder.map(r => r.subjectId));
+    _saveVerticalSchedule();
   }
 
   function _firstSubtopicIdxForModule(moduleIdx) {
@@ -3242,7 +3921,15 @@ const GKApp = (() => {
     const subtopic = topicData.topic.subtopics[idx];
 
     state.activeSubtopicIdx = idx;
+    state._lessonFlowMode = null;
     if (m) _persistResumeLesson(m);
+
+    if (_hasLessonFlow(subtopic)) {
+      _startLessonFlowAt(subtopic, 0, 'hook');
+      return;
+    }
+
+    state.lessonPhase = null;
 
     // If it's pure assessment (no concepts, no distinct game object with a 'type')
     if ((!subtopic.concepts || subtopic.concepts.length === 0) && (!subtopic.game || !subtopic.game.type) && subtopic.assessment) {
@@ -3394,6 +4081,12 @@ const GKApp = (() => {
   }
 
   function nextConcept() {
+    const subtopic = _getCurrentSubtopic();
+    if (_hasLessonFlow(subtopic)) {
+      advanceLessonFlow();
+      return;
+    }
+
     state.conceptIdx++;
 
     // Award XP only if new
@@ -3409,6 +4102,11 @@ const GKApp = (() => {
   }
 
   function prevConcept() {
+    const subtopic = _getCurrentSubtopic();
+    if (_hasLessonFlow(subtopic)) {
+      prevLessonFlow();
+      return;
+    }
     if (state.conceptIdx > 0) {
       state.conceptIdx--;
       render();
@@ -4138,11 +4836,11 @@ const GKApp = (() => {
         
         // Re-populate modules to ensure subjectColor etc are present for rendering
         const unlockedTopics = profile.unlockedTopics || [];
-        state.modules = GKRecommender.getRecommendedModules(
-          state.calibration || GKMoodEngine.calibrateSession(80, 'high_energy'), 
-          profile.completedTopics || []
-        ).filter(m => !_isTopicHidden(m, unlockedTopics))
-         .map((m, idx) => ({ ...m, _origIdx: idx }));
+        state.modules = _assignStudentModules(
+          state.calibration || GKMoodEngine.calibrateSession(80, 'high_energy'),
+          profile.completedTopics || [],
+          unlockedTopics
+        );
 
         // Disable TTS in mirror mode to prevent audio overlap for mentor
         if (typeof GKVoice !== 'undefined') {
@@ -4221,11 +4919,11 @@ const GKApp = (() => {
           }
 
           const unlockedTopics = freshProfile.unlockedTopics || [];
-          state.modules = GKRecommender.getRecommendedModules(
+          state.modules = _assignStudentModules(
             state.calibration || GKMoodEngine.calibrateSession(80, 'high_energy'),
-            freshProfile.completedTopics || []
-          ).filter(m => !_isTopicHidden(m, unlockedTopics))
-           .map((m, idx) => ({ ...m, _origIdx: idx }));
+            freshProfile.completedTopics || [],
+            unlockedTopics
+          );
 
           render();
         });
@@ -4315,11 +5013,11 @@ const GKApp = (() => {
             // Re-populate and re-filter modules if we have a session active
             if (state.calibration) {
               const unlockedTopics = updatedUser.unlockedTopics || [];
-              state.modules = GKRecommender.getRecommendedModules(
+              state.modules = _assignStudentModules(
                 state.calibration,
-                updatedUser.completedTopics || []
-              ).filter(m => !_isTopicHidden(m, unlockedTopics))
-                .map((m, idx) => ({ ...m, _origIdx: idx }));
+                updatedUser.completedTopics || [],
+                unlockedTopics
+              );
             }
 
             // Re-render current screen to reflect new completions/unlocks/resets
@@ -4368,11 +5066,11 @@ const GKApp = (() => {
 
           if (state.calibration) {
             const unlockedTopics = profile.unlockedTopics || [];
-            state.modules = GKRecommender.getRecommendedModules(
+            state.modules = _assignStudentModules(
               state.calibration,
-              profile.completedTopics || []
-            ).filter(m => !_isTopicHidden(m, unlockedTopics))
-              .map((m, idx) => ({ ...m, _origIdx: idx }));
+              profile.completedTopics || [],
+              unlockedTopics
+            );
           }
           render();
         }
@@ -4483,31 +5181,6 @@ const GKApp = (() => {
       </div>`;
   }
 
-  function renderSidebarAssistantsBlock() {
-    const selected = GKAssistant.getSelectedId();
-    const cards = GKAssistant.list().map(a => `
-      <button type="button"
-        class="sidebar-assistant-card ${a.id === selected ? 'active' : ''}"
-        onclick="GKApp.selectAssistant('${a.id}')"
-        title="${a.name} — ${a.subtitle}"
-        aria-pressed="${a.id === selected ? 'true' : 'false'}">
-        <span class="sidebar-assistant-thumb">
-          <img src="${GKAssistant.thumbnailUrl(a.id)}" alt="" onerror="this.onerror=null;this.src='${GKAssistant.thumbnailFallbackUrl(a.id)}'" />
-        </span>
-        <span class="sidebar-assistant-meta">
-          <span class="sidebar-assistant-emoji">${a.emoji}</span>
-          <span class="sidebar-assistant-name">${a.name}</span>
-        </span>
-      </button>
-    `).join('');
-
-    return `
-      <div class="sidebar-assistants-block">
-        <div class="sidebar-assistants-label">Your AI guide</div>
-        <div class="sidebar-assistant-grid">${cards}</div>
-      </div>`;
-  }
-
   function renderSidebarMenu(activeId = 'topics', activeSubjectId = null) {
     const menuItems = [
       { id: 'schedule', icon: '📅', label: "Today's Schedule", active: activeId === 'schedule' },
@@ -4540,7 +5213,6 @@ const GKApp = (() => {
           ${!state.sidebarCollapsed ? renderSidebarToggleBtn(true) : ''}
         </div>
         <nav class="sidebar-menu">
-          ${renderSidebarAssistantsBlock()}
           ${menuItemsHtml}
           ${subjectsBlock}
         </nav>
@@ -4681,6 +5353,147 @@ const GKApp = (() => {
     // Fix: Clear dragging state before render, otherwise render() will return early
     state.isDragging = false;
     render();
+  }
+
+  let _vschedPointer = null;
+
+  function _vSchedIdxFromPoint(clientX, clientY) {
+    const dragging = document.querySelector('.vsched-dragging');
+    if (dragging) dragging.style.pointerEvents = 'none';
+    const el = document.elementFromPoint(clientX, clientY);
+    if (dragging) dragging.style.pointerEvents = '';
+    const card = el && el.closest ? el.closest('[data-vslot].vsched-draggable') : null;
+    if (!card) return null;
+    const idx = parseInt(card.getAttribute('data-vslot'), 10);
+    if (Number.isNaN(idx)) return null;
+    const slot = state.verticalSchedule?.[idx];
+    if (!slot || slot.type === 'lunch') return null;
+    return idx;
+  }
+
+  function _vSchedClearDragOver() {
+    document.querySelectorAll('.vsched-drag-over').forEach(el => {
+      el.classList.remove('vsched-drag-over');
+    });
+  }
+
+  function _vSchedHighlightTarget(idx) {
+    _vSchedClearDragOver();
+    if (idx == null || idx === state.verticalDragSrc) return;
+    const card = document.querySelector(`[data-vslot="${idx}"].vsched-draggable`);
+    if (card) card.classList.add('vsched-drag-over');
+  }
+
+  function _vSchedCommitMove(src, targetIdx) {
+    if (src == null || targetIdx == null || Number.isNaN(targetIdx)) return false;
+    if (src === targetIdx) return false;
+    const targetSlot = state.verticalSchedule?.[targetIdx];
+    if (!targetSlot || targetSlot.type === 'lunch') return false;
+
+    let slots = state.verticalSchedule.map(s => ({ ...s }));
+    slots = _moveVerticalScheduleSlot(slots, src, targetIdx);
+    if (!slots) return false;
+
+    const visible = (state.modules || []).filter(
+      m => m.assigned !== false && TIMETABLE_SUBJECT_IDS.includes(m.subjectId)
+    );
+    slots = _syncVerticalSlotTopics(slots, visible);
+
+    state.verticalSchedule = slots;
+    _saveVerticalSchedule();
+    return true;
+  }
+
+  function _vSchedEndPointerDrag(committed) {
+    document.removeEventListener('pointermove', _vSchedOnPointerMove);
+    document.removeEventListener('pointerup', _vSchedOnPointerUp);
+    document.removeEventListener('pointercancel', _vSchedOnPointerUp);
+    _vschedPointer = null;
+    _vSchedClearDragOver();
+    document.querySelectorAll('.vsched-dragging').forEach(el => {
+      el.classList.remove('vsched-dragging');
+      el.style.pointerEvents = '';
+    });
+    const list = document.querySelector('.vertical-schedule-list');
+    if (list) list.classList.remove('is-vsched-dragging');
+
+    state.isDragging = false;
+    state.verticalDragSrc = null;
+    state.verticalDropTarget = null;
+
+    if (committed) {
+      state.verticalDragCommitted = true;
+      state.verticalSuppressClick = true;
+      state.vschedDidMove = true;
+      render();
+    } else {
+      state.verticalDragCommitted = false;
+    }
+  }
+
+  function _vSchedOnPointerMove(event) {
+    if (!_vschedPointer || event.pointerId !== _vschedPointer.pointerId) return;
+    event.preventDefault();
+    if (Math.abs(event.clientY - _vschedPointer.startY) > 4) {
+      _vschedPointer.moved = true;
+    }
+    const idx = _vSchedIdxFromPoint(event.clientX, event.clientY);
+    state.verticalDropTarget = idx;
+    _vSchedHighlightTarget(idx);
+  }
+
+  function _vSchedOnPointerUp(event) {
+    if (!_vschedPointer || event.pointerId !== _vschedPointer.pointerId) return;
+    event.preventDefault();
+
+    const src = _vschedPointer.src;
+    let targetIdx = _vSchedIdxFromPoint(event.clientX, event.clientY);
+    if (targetIdx == null) targetIdx = state.verticalDropTarget;
+
+    const committed = _vschedPointer.moved && _vSchedCommitMove(src, targetIdx);
+    _vSchedEndPointerDrag(committed);
+  }
+
+  function onVSchedPointerDown(event, idx) {
+    if (event.button !== 0 && event.pointerType === 'mouse') return;
+    const slot = state.verticalSchedule?.[idx];
+    if (!slot || slot.type === 'lunch') return;
+
+    event.preventDefault();
+    event.stopPropagation();
+
+    const handle = event.currentTarget;
+    try { handle.setPointerCapture(event.pointerId); } catch (_) { /* ignore */ }
+
+    state.isDragging = true;
+    state.verticalDragSrc = idx;
+    state.verticalDropTarget = null;
+    state.verticalDragCommitted = false;
+    state.vschedDidMove = false;
+
+    const card = handle.closest('[data-vslot]');
+    if (card) card.classList.add('vsched-dragging');
+    document.querySelector('.vertical-schedule-list')?.classList.add('is-vsched-dragging');
+
+    _vschedPointer = {
+      pointerId: event.pointerId,
+      src: idx,
+      startY: event.clientY,
+      moved: false
+    };
+
+    document.addEventListener('pointermove', _vSchedOnPointerMove, { passive: false });
+    document.addEventListener('pointerup', _vSchedOnPointerUp, { passive: false });
+    document.addEventListener('pointercancel', _vSchedOnPointerUp, { passive: false });
+  }
+
+  function onVSchedCardClick(event, moduleIdx) {
+    if (state.verticalSuppressClick || state.vschedDidMove) {
+      state.verticalSuppressClick = false;
+      state.vschedDidMove = false;
+      return;
+    }
+    startModule(moduleIdx);
   }
 
   // ---- Demo Override (tick button to mark a module as complete) ----
@@ -5214,11 +6027,13 @@ const GKApp = (() => {
     toggleDemoOverride, completeDay,
     // Timetable drag-and-drop
     onTTDragStart, onTTDragEnd, onTTDragOver, onTTDragLeave, onTTDrop,
+    onVSchedPointerDown, onVSchedCardClick,
     // Subtopics
     startSubtopic, backToSubtopics, startChallenge, retakeChallenge,
     toggleOptionalSubtopics, toggleSubtopicExpand,
     // Concepts
     nextConcept, prevConcept, startGame,
+    advanceLessonFlow, prevLessonFlow, continueLessonFlowAfterLight, continueLessonFlowAfterFinal, completeLessonFlow,
     // Games 
     classifyToggle, submitClassify,
     answerMCQGame, nextMCQGame,

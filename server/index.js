@@ -19,17 +19,16 @@ dotenv.config({ path: path.join(ROOT, 'env.local') });
 const express = require('express');
 const { init: initDB } = require('./db');
 const { syncConfig }   = require('./config-loader');
-const apiRoutes = require('./routes');
 
 const PORT    = process.env.PORT || 3000;
 const DB_DIR  = process.env.DB_DIR || path.join(__dirname, '../db');
 const STATIC  = path.resolve(__dirname, '..');  // serve wizkids/ root
 
-// ── Init DB then sync learning-path config ────────────────────────────────────
+// ── Init DB then sync learning-path config (before loading routes) ─────────────
 try {
   console.log('[GKServer] Initializing database & syncing curriculum...');
   initDB(DB_DIR);
-  
+
   console.log('[GKServer] Syncing config...');
   const syncResult = syncConfig();
   if (syncResult === null) {
@@ -39,6 +38,9 @@ try {
   console.error('[GKServer] Startup error:', err);
   process.exit(1);
 }
+
+// Load API routes only after DB is ready (avoids startup deadlock with SQLite).
+const apiRoutes = require('./routes');
 
 // ── Express app ──────────────────────────────────────────────────────────────
 const app = express();
@@ -58,9 +60,21 @@ app.get('*', (req, res) => {
 
 // ── Start ─────────────────────────────────────────────────────────────────────
 // Listen on 0.0.0.0 so Docker exposes the port on all interfaces.
-app.listen(PORT, '0.0.0.0', () => {
+const server = app.listen(PORT, '0.0.0.0', () => {
   console.log(`[GKServer] Gurukul running on port ${PORT}`);
   console.log(`  Student  → http://localhost:${PORT}/student.html`);
   console.log(`  Mentor   → http://localhost:${PORT}/mentor.html`);
   console.log(`  Branding → http://localhost:${PORT}/admin/school-branding.html (admin only)`);
+});
+
+server.on('error', (err) => {
+  if (err.code === 'EADDRINUSE') {
+    console.error(`[GKServer] Port ${PORT} is already in use (often Docker: gurukul-app).`);
+    console.error('  Option A: open http://localhost:3000/student.html (Docker)');
+    console.error('  Option B: docker stop gurukul-app  then run npm start');
+    console.error('  Option C: PORT=3001 npm start  then open http://localhost:3001/student.html');
+    process.exit(1);
+  }
+  console.error('[GKServer] Listen error:', err);
+  process.exit(1);
 });
