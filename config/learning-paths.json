@@ -108,30 +108,6 @@
       "pathId":     "path-grade6-advanced",
       "assignedBy": "mentor01",
       "_note":      "Arjuna — competitive, analytical; advanced track"
-    },
-    {
-      "studentId":  "diya",
-      "pathId":     "path-grade6-core",
-      "assignedBy": "mentor01",
-      "_note":      "Diya — visual learner, standard core path"
-    },
-    {
-      "studentId":  "disha",
-      "pathId":     "path-grade6-core",
-      "assignedBy": "mentor01",
-      "_note":      "Disha — creative learner, standard core path"
-    },
-    {
-      "studentId":  "vidvath",
-      "pathId":     "path-grade6-advanced",
-      "assignedBy": "mentor01",
-      "_note":      "Vidvath — energetic, practical; moved to advanced track"
-    },
-    {
-      "studentId":  "mahanth",
-      "pathId":     "path-grade6-advanced",
-      "assignedBy": "mentor01",
-      "_note":      "Mahanth — competitive, analytical; advanced track"
     }
   ]
 }

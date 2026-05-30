@@ -1053,7 +1053,7 @@ router.post('/feedback/module', (req, res) => {
  *       500:
  *         description: Internal server error
  */
->>>>>>> origin/aditya-feedback-api
+
 router.post('/feedback/session', (req, res) => {
   try {
     const { userId, feedbackData } = req.body;
@@ -1177,7 +1177,7 @@ router.get('/feedback/all', (req, res) => {
  *       500:
  *         description: Internal server error
  */
->>>>>>> origin/aditya-feedback-api
+
 router.post('/quickcheck', (req, res) => {
   try {
     const { userId, result } = req.body;
