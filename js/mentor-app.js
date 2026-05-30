@@ -2130,11 +2130,14 @@ const GKMentorApp = (() => {
     `;
 
     // Recent Feedback
+    const isRecentExpanded = state.expandedSections['recentFeedback'] !== false; // Default true
     let recentHtml = `
       <div class="qv2-card" style="margin-bottom: 2rem;">
-        <div class="section-header" style="margin-bottom: 1rem;">
-          <h3>Recent Feedback</h3>
+        <div class="section-header" style="margin-bottom: 1rem; cursor: pointer; display: flex; justify-content: space-between; align-items: center;" onclick="GKMentorApp.toggleSection('recentFeedback')">
+          <h3 style="margin: 0;">Recent Feedback</h3>
+          <div style="font-size: 1rem; color: #888;">${isRecentExpanded ? '▲' : '▼'}</div>
         </div>
+        ${isRecentExpanded ? `
         <table style="width: 100%; border-collapse: collapse; font-size: 0.85rem; text-align: left;">
           <thead>
             <tr style="border-bottom: 1px solid #eee;">
@@ -2161,6 +2164,7 @@ const GKMentorApp = (() => {
             `).join('')}
           </tbody>
         </table>
+        ` : ''}
       </div>
     `;
 
